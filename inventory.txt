@@ -1,0 +1,27 @@
+beetroot/
+   ├── config/ 
+   │   ├── scripts/
+   |   |   ├── beetenv.sh           <- env gen script
+   |   |   ├── beetroot.sh          <- main user script
+   |   |   ├── beetsync.sh          <- git sync script
+   |   |   └── mose.sh              <- docker compose orchestration
+   │   └── web/                     <- project website goes here, port 80, 443
+   ├── docker/
+   │   ├── chamboard/               <- python based backend api for chamboard project (TBD - needs to be subtask of this project as chamboard will be used for status)
+   │   ├── cloudflare/              <- optional tunnel for public access
+   │   │   └── docker-compose.yaml
+   │   ├── immich/
+   │   │   └── docker-compose.yaml
+   │   ├── traefik/                 <- reverse proxy for ingress, port 8080, all additional services accessed by hostname
+   │       └── docker-compose.yaml
+   │   └── wordpress/
+   │       └── docker-compose.yaml
+   ├── docs/
+   ├── shared/
+   │   ├── backup/                  <- project backup location
+   │   ├── files/
+   |   ├── logs/
+   │   └── library/                 <- shared photo archive for immich
+   ├── .gitignore
+   ├── LICENSE                      <- MIT License
+   └── README.md
