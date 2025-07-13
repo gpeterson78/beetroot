@@ -48,6 +48,13 @@ fi
 log "🚀 Running beetenv to scan and register services..."
 python3 "$PROJECT_ROOT/config/scripts/beetenv.py"
 
+read -p "Choose port for local admin interface (default 80): " ADMIN_PORT
+ADMIN_PORT=${ADMIN_PORT:-80}
+
+echo "Starting beetroot admin web interface on port $ADMIN_PORT..."
+
+nohup python3 config/web/backend.py --port "$ADMIN_PORT" >/dev/null 2>&1 &
+
 log "✅ Installation complete."
 echo "🎉 Setup finished! You can now launch services with:"
 echo "   ./config/scripts/mose.sh wordpress --up"
