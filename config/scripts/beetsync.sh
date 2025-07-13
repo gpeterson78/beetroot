@@ -1,58 +1,55 @@
 #!/bin/bash
+# beetsync.sh -- Safely update beetroot platform from public GitHub repo
+
+# Author: Grady Peterson
+# License: MIT
+
 set -e
 
-CONFIG_FILE="./snand.config"  # Move to `config/beetroot.env` eventually
-. "$CONFIG_FILE"
+# ---------------------------------------------
+# Configuration
+# ---------------------------------------------
 
-TIMESTAMP=$(date +%Y%m%d%H%M%S)
-TEMP_BACKUP_DIR="$BACKUP_PATH/temp_backup_$TIMESTAMP"
-FINAL_BACKUP_FILE="$BACKUP_PATH/snand_config_$TIMESTAMP.tar.gz"
-GIT_TEMP_REPO_DIR="/tmp/beetroot-repo"
+REPO_URL="https://github.com/snand-beetroot/beetroot.git"
+TEMP_DIR="/tmp/beetroot-sync"
+PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$0")")")"
+BACKUP_DIR="$PROJECT_ROOT/shared/backup/sync-$(date +%Y%m%d%H%M%S)"
+POST_SYNC_SCRIPT="$PROJECT_ROOT/config/scripts/beetenv.py"
 
-mkdir -p "$BACKUP_PATH" "$TEMP_BACKUP_DIR"
+# ---------------------------------------------
+# Start sync process
+# ---------------------------------------------
 
-log() { echo "🪵 $1"; }
+echo "[beetsync] Starting update from $REPO_URL..."
+echo "[beetsync] Backing up current environment to $BACKUP_DIR"
 
-# Clone or pull repo
-if [ -d "$GIT_TEMP_REPO_DIR/.git" ]; then
-  log "Pulling from Git repo..."
-  git -C "$GIT_TEMP_REPO_DIR" pull origin main || exit 1
+mkdir -p "$BACKUP_DIR"
+tar -czf "$BACKUP_DIR/backup.tar.gz" -C "$PROJECT_ROOT" . --exclude='shared/backup'
+
+echo "[beetsync] Cloning latest repo into $TEMP_DIR"
+rm -rf "$TEMP_DIR"
+git clone --depth=1 "$REPO_URL" "$TEMP_DIR"
+
+echo "[beetsync] Syncing core project files..."
+rsync -av \
+  --exclude '*.env' \
+  --exclude 'shared/' \
+  --exclude '.git' \
+  --exclude 'docker/*/.env' \
+  "$TEMP_DIR/" "$PROJECT_ROOT/"
+
+echo "[beetsync] Cleaning up temporary clone..."
+rm -rf "$TEMP_DIR"
+
+# ---------------------------------------------
+# Post-sync hook
+# ---------------------------------------------
+
+if [ -x "$POST_SYNC_SCRIPT" ]; then
+    echo "[beetsync] Running beetenv to validate environment..."
+    "$POST_SYNC_SCRIPT"
 else
-  log "Cloning Git repo..."
-  git clone "$GIT_REPO_URL" "$GIT_TEMP_REPO_DIR" || exit 1
+    echo "[beetsync] beetenv.py not found or not executable. Skipping environment check."
 fi
 
-# Copy updated files with backup
-sync_path() {
-  SRC_DIR="$1"
-  DEST_DIR="$2"
-  find "$SRC_DIR" -type f | while read -r FILE_PATH; do
-    REL_PATH="${FILE_PATH#$SRC_DIR/}"
-    DEST_PATH="$DEST_DIR/$REL_PATH"
-
-    if [ -f "$DEST_PATH" ]; then
-      log "Backing up $DEST_PATH"
-      mkdir -p "$(dirname "$TEMP_BACKUP_DIR/$REL_PATH")"
-      cp "$DEST_PATH" "$TEMP_BACKUP_DIR/$REL_PATH"
-    fi
-
-    log "Updating $DEST_PATH"
-    mkdir -p "$(dirname "$DEST_PATH")"
-    cp "$FILE_PATH" "$DEST_PATH"
-  done
-}
-
-sync_path "$GIT_TEMP_REPO_DIR/docker" "./docker"
-sync_path "$GIT_TEMP_REPO_DIR/scripts" "./config/scripts"
-
-# Make copied scripts executable
-find ./config/scripts -type f -exec chmod +x {} \;
-
-# Archive backups
-if [ "$(ls -A "$TEMP_BACKUP_DIR")" ]; then
-  tar -czf "$FINAL_BACKUP_FILE" -C "$TEMP_BACKUP_DIR" .
-  log "Backup archived: $FINAL_BACKUP_FILE"
-fi
-
-rm -rf "$TEMP_BACKUP_DIR"
-log "✅ Sync complete."
+echo "[beetsync] Update complete. Your beetroot platform is now synced with the latest version."
