@@ -1,7 +1,6 @@
 #!/bin/bash
-# beetgone.sh -- Beetroot cleanup script
-# This script removes the beetroot stack and its related files/directories.
-# Use with caution.
+# beetgone.sh -- Cleanup script for beetroot environment
+# Removes beetroot directories and optionally uninstalls dependencies
 
 set -e
 
