@@ -1,4 +1,4 @@
-#in progress work, do not use
+# work in progress, do not use unless you want to break things
 
 # beetroot
 Self-hosted infrastructure stack for families and small groups; local-first, container-based, and deeply rooted.
