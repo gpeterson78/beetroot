@@ -1,4 +1,9 @@
 #!/bin/bash
+# beetsync.sh -- Safely update beetroot platform from public GitHub repo
+
+# Author: Grady Peterson
+# License: MIT
+
 set -e
 
 CONFIG_FILE="./snand.config"  # To be renamed/configured later

@@ -39,3 +39,19 @@ beetroot/
    ├── .gitignore
    ├── LICENSE                      <- MIT License
    └── README.md
+   
+   
+   
+   ---
+   
+   config/web/
+├── ui/
+│   ├── index.html
+│   ├── settings.html
+│   └── ...
+├── static/
+│   └── styles.css, logo.png, etc.
+├── templates/
+│   └── (optional for Flask Jinja2 rendering)
+├── backend.py
+└── config.json        # Optional runtime config (e.g., admin port, hostname)
