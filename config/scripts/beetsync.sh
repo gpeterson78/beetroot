@@ -28,6 +28,13 @@ log "Updating system packages (apt)"
 sudo apt-get update -y
 sudo apt-get upgrade -y
 
+# --- Check for python3-venv availability ---
+if ! python3 -m venv --help >/dev/null 2>&1; then
+  log "Missing python3-venv package. Please install it:"
+  log "  sudo apt install python3-venv"
+  exit 1
+fi
+
 # --- 3. Python Virtual Environment ---
 if [ ! -d "$VENV_DIR" ]; then
   log "Creating Python virtual environment at $VENV_DIR"
