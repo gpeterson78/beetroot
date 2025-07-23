@@ -1,77 +1,64 @@
 #!/bin/bash
-# beetsync.sh -- Safely update beetroot platform from public GitHub repo
+# beetsync.sh -- Beetroot Platform Sync & Updater
+# Grady Peterson, MIT License
 
-# Author: Grady Peterson
-# License: MIT
+set -euo pipefail
 
-set -e
-
-CONFIG_FILE="./snand.config"  # To be renamed/configured later
-. "$CONFIG_FILE"
-
+# --- Configuration ---
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="$REPO_DIR/config/scripts"
+WEB_DIR="$REPO_DIR/config/web"
+VENV_DIR="$WEB_DIR/venv"
+REQUIREMENTS_FILE="$WEB_DIR/requirements.txt"
+HOOK_DIR="$SCRIPT_DIR/hooks/update"
+BACKUP_DIR="$REPO_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
-TEMP_BACKUP_DIR="$BACKUP_PATH/temp_backup_$TIMESTAMP"
-FINAL_BACKUP_FILE="$BACKUP_PATH/snand_config_$TIMESTAMP.tar.gz"
-GIT_TEMP_REPO_DIR="/tmp/beetroot-repo"
-VENV_DIR="./config/web/venv"
-REQUIREMENTS_FILE="./config/web/requirements.txt"
 
-mkdir -p "$BACKUP_PATH" "$TEMP_BACKUP_DIR"
+log() { echo "[beetsync] $1"; }
 
-log() { echo "🪵 $1"; }
-
-# --- Git Repo Sync ---
-if [ -d "$GIT_TEMP_REPO_DIR/.git" ]; then
-  log "Pulling from Git repo..."
-  git -C "$GIT_TEMP_REPO_DIR" pull origin main || exit 1
-else
-  log "Cloning Git repo..."
-  git clone "$GIT_REPO_URL" "$GIT_TEMP_REPO_DIR" || exit 1
+# --- 1. Git Pull ---
+log "Updating local repo at $REPO_DIR"
+if ! git -C "$REPO_DIR" pull origin main; then
+  log "Git pull failed"
+  exit 1
 fi
 
-# --- Directory Sync with Backup ---
-sync_path() {
-  SRC_DIR="$1"
-  DEST_DIR="$2"
-  find "$SRC_DIR" -type f | while read -r FILE_PATH; do
-    REL_PATH="${FILE_PATH#$SRC_DIR/}"
-    DEST_PATH="$DEST_DIR/$REL_PATH"
+# --- 2. System Update (APT) ---
+log "Updating system packages (apt)"
+sudo apt-get update -y
+sudo apt-get upgrade -y
 
-    if [ -f "$DEST_PATH" ]; then
-      log "Backing up $DEST_PATH"
-      mkdir -p "$(dirname "$TEMP_BACKUP_DIR/$REL_PATH")"
-      cp "$DEST_PATH" "$TEMP_BACKUP_DIR/$REL_PATH"
-    fi
-
-    log "Updating $DEST_PATH"
-    mkdir -p "$(dirname "$DEST_PATH")"
-    cp "$FILE_PATH" "$DEST_PATH"
-  done
-}
-
-sync_path "$GIT_TEMP_REPO_DIR/docker" "./docker"
-sync_path "$GIT_TEMP_REPO_DIR/scripts" "./config/scripts"
-
-# Make scripts executable
-find ./config/scripts -type f -exec chmod +x {} \;
-
-# --- Virtual Environment Setup ---
+# --- 3. Python Virtual Environment ---
 if [ ! -d "$VENV_DIR" ]; then
-  log "Creating Python virtual environment in $VENV_DIR"
+  log "Creating Python virtual environment at $VENV_DIR"
   python3 -m venv "$VENV_DIR"
 fi
 
-log "Activating virtualenv and installing/updating requirements"
+log "Updating Python dependencies"
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
-pip install -r "$REQUIREMENTS_FILE"
+if [ -f "$REQUIREMENTS_FILE" ]; then
+  pip install -r "$REQUIREMENTS_FILE"
+else
+  log "WARNING: requirements.txt not found at $REQUIREMENTS_FILE"
+fi
 deactivate
 
-# --- Archive any backups ---
-if [ "$(ls -A "$TEMP_BACKUP_DIR")" ]; then
-  tar -czf "$FINAL_BACKUP_FILE" -C "$TEMP_BACKUP_DIR" .
-  log "Backup archived: $FINAL_BACKUP_FILE"
+# --- 4. Make All Scripts Executable ---
+log "Ensuring all scripts in $SCRIPT_DIR are executable"
+find "$SCRIPT_DIR" -type f -exec chmod +x {} \;
+
+# --- 5. Run Optional Update Hooks ---
+if [ -d "$HOOK_DIR" ]; then
+  log "Ensuring all update hooks are executable"
+  find "$HOOK_DIR" -type f -name "*.sh" -exec chmod +x {} \;
+
+  log "Running update hooks from $HOOK_DIR"
+  for hook in "$HOOK_DIR"/*.sh; do
+    [ -x "$hook" ] && log "Running hook: $(basename "$hook")" && "$hook"
+  done
+else
+  log "No update hooks directory found at $HOOK_DIR"
 fi
 
-rm -rf "$TEMP_BACKUP_DIR"
-log "Sync complete and Python environment is ready."
+log "Beetroot platform sync complete."
