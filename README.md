@@ -11,6 +11,12 @@ Local-first, container-based, CLI-driven — and deeply rooted in transparency.
 You can install Beetroot with a single command:
 
 ```bash
+bash <(wget -qO- https://raw.githubusercontent.com/gpeterson78/beetroot/main/install.sh)
+```
+
+Or if you prefer:
+
+```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/gpeterson78/beetroot/main/install.sh)
 ```
 

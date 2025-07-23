@@ -6,7 +6,7 @@ SCRIPTS_PATH="$INSTALL_PATH/config/scripts"
 VENV_PATH="$INSTALL_PATH/config/web/venv"
 BEETSYNC="$SCRIPTS_PATH/beetsync.sh"
 
-echo "🔧 Beetroot Installer"
+echo "Beetroot Installer"
 
 # Detect if already installed
 if [ -f "$VENV_PATH/bin/activate" ]; then
