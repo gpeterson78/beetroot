@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Beetroot Admin</title>
+</head>
+<body>
+    <h1>Run Beetroot Scripts</h1>
+    <select id="script-select">
+        <option value="install.sh">install.sh</option>
+        <option value="beetenv.py">beetenv.py</option>
+        <option value="beetsync.sh">beetsync.sh</option>
+        <option value="beetgone.sh">beetgone.sh</option>
+        <option value="beetver.sh">beetver.sh</option>
+    </select>
+    <button onclick="runScript()">Run</button>
+    <pre id="output"></pre>
+    <script>
+        function runScript() {
+            const script = document.getElementById('script-select').value;
+            fetch('/api/scripts/run', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({script})
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('output').textContent = data.output || data.error;
+            });
+        }
+    </script>
+</body>
+</html>
