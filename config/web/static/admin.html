@@ -3,32 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <title>Beetroot Admin</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f7f7f7;
+            padding: 2em;
+        }
+        .status-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 1em;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 500px;
+        }
+        h1 { margin-bottom: 0.5em; }
+        .label { font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>Beetroot Admin Interface</h1>
-    <p>Status: <span id="status">Loading...</span></p>
-    <p>Version: <span id="version">Loading...</span></p>
+    <div class="status-box">
+        <h1>Beetroot Admin</h1>
+        <p><span class="label">Status:</span> <span id="status">Loading...</span></p>
+        <p><span class="label">Version:</span> <span id="version">Loading...</span></p>
+        <p><span class="label">Commit Hash:</span> <span id="hash">Loading...</span></p>
+    </div>
 
     <script>
-        fetch('/api/health')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('status').textContent = data.status;
-            })
-            .catch(err => {
-                document.getElementById('status').textContent = "Error";
-                console.error(err);
-            });
+        function fetchStatus() {
+            fetch('/api/health')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('status').textContent = data.status;
+                })
+                .catch(err => {
+                    document.getElementById('status').textContent = "Error";
+                    console.error(err);
+                });
+        }
 
-        fetch('/api/version')
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('version').textContent = data.version;
-            })
-            .catch(err => {
-                document.getElementById('version').textContent = "Error";
-                console.error(err);
-            });
+        function fetchVersion() {
+            fetch('/api/version')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('version').textContent = data.version;
+                })
+                .catch(err => {
+                    document.getElementById('version').textContent = "Error";
+                    console.error(err);
+                });
+        }
+
+        function fetchHash() {
+            fetch('/api/version/hash')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('hash').textContent = data.hash;
+                })
+                .catch(err => {
+                    document.getElementById('hash').textContent = "Error";
+                    console.error(err);
+                });
+        }
+
+        function refreshAll() {
+            fetchStatus();
+            fetchVersion();
+            fetchHash();
+        }
+
+        // Initial load
+        refreshAll();
+
+        // Refresh every 30 seconds
+        setInterval(refreshAll, 30000);
     </script>
 </body>
 </html>
