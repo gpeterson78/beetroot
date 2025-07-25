@@ -2,6 +2,7 @@ import os
 from flask import Flask, send_from_directory, jsonify, request, redirect, url_for
 from blueprints.scripts import scripts_bp
 from blueprints.version import version_bp
+from flasgger import Swagger
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -9,15 +10,12 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 app = Flask(__name__, static_folder=STATIC_DIR)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
+swagger = Swagger(app)
+
 # Serve the admin interface
 @app.route('/')
 def index():
     return send_from_directory(STATIC_DIR, "admin.html")
-
-# Health check endpoint
-@app.route('/api/health', methods=['GET'])
-def health():
-    return jsonify({"status": "ok", "service": "beetroot-backend"})
 
 # Example endpoint to request a script run (stub)
 @app.route('/api/run', methods=['POST'])
