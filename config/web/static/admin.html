@@ -55,7 +55,7 @@
         }
 
         function fetchHash() {
-            fetch('/api/version/hash')
+            fetch('/api/version')
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('hash').textContent = data.hash;
