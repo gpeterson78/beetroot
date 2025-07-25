@@ -28,6 +28,7 @@ def run_script():
 # Register API blueprints
 app.register_blueprint(scripts_bp, url_prefix='/api/scripts')
 app.register_blueprint(version_bp, url_prefix='/api/version')
+app.register_blueprint(health_bp, url_prefix='/api/health')
 
 # Launch the app
 if __name__ == "__main__":
