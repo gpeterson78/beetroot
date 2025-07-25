@@ -1,7 +1,7 @@
 from .scripts import scripts_bp
 from .system import system_bp
 from .version import version_bp
-from .version import health_bp
+from .health import health_bp
 # from .docker import docker_bp
 # from .dns import dns_bp
 
