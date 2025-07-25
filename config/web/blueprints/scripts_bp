@@ -1,8 +1,0 @@
-# blueprints/scripts.py
-from flask import Blueprint
-
-scripts_bp = Blueprint("scripts", __name__)
-
-@scripts_bp.route('/example', methods=['GET'])
-def example():
-    return {"message": "This is a stub example endpoint"}

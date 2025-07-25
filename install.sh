@@ -20,6 +20,21 @@ fi
 echo "This will install Beetroot into: $INSTALL_PATH"
 read -rp "Press ENTER to continue or Ctrl+C to cancel..."
 
+# --- Check write permissions ---
+if [ ! -w "$INSTALL_PATH" ]; then
+    echo "You do not have write permissions to $INSTALL_PATH"
+    read -rp "Do you want to set ownership of this folder to your user? (y/N): " RESP
+    if [[ "$RESP" =~ ^[Yy]$ ]]; then
+        echo "Changing ownership, you may be prompted for sudo password..."
+        sudo chown -R "$(whoami):$(whoami)" "$INSTALL_PATH"
+    else
+        echo "Please set correct permissions manually using:"
+        echo "  sudo chown -R $(whoami):$(whoami) $INSTALL_PATH"
+        echo "Then re-run this installer."
+        exit 1
+    fi
+fi
+
 # Clone repo if not running from one
 if [ ! -f "$BEETSYNC" ]; then
   echo "Cloning Beetroot repo..."
