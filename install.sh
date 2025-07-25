@@ -6,33 +6,28 @@ SCRIPTS_PATH="$INSTALL_PATH/config/scripts"
 VENV_PATH="$INSTALL_PATH/config/web/venv"
 BEETSYNC="$SCRIPTS_PATH/beetsync.sh"
 
+# --- Check if running as root ---
+if [ "$EUID" -eq 0 ]; then
+    echo "ERROR: Do not run this installer as root."
+    echo "Run as a normal user with write permissions to $INSTALL_PATH"
+    exit 1
+fi
+
 echo "Beetroot Installer"
 
 # Detect if already installed
 if [ -f "$VENV_PATH/bin/activate" ]; then
   echo "Beetroot is already installed in: $INSTALL_PATH"
   echo "To update, run: $BEETSYNC --update"
-  echo "ℹOr add it to your PATH: export PATH=\"\$PATH:$SCRIPTS_PATH\""
+  echo "Or add it to your PATH: export PATH=\"\$PATH:$SCRIPTS_PATH\""
   exit 0
 fi
 
-# Confirm install path
-echo "This will install Beetroot into: $INSTALL_PATH"
-read -rp "Press ENTER to continue or Ctrl+C to cancel..."
-
 # --- Check write permissions ---
 if [ ! -w "$INSTALL_PATH" ]; then
-    echo "You do not have write permissions to $INSTALL_PATH"
-    read -rp "Do you want to set ownership of this folder to your user? (y/N): " RESP
-    if [[ "$RESP" =~ ^[Yy]$ ]]; then
-        echo "Changing ownership, you may be prompted for sudo password..."
-        sudo chown -R "$(whoami):$(whoami)" "$INSTALL_PATH"
-    else
-        echo "Please set correct permissions manually using:"
-        echo "  sudo chown -R $(whoami):$(whoami) $INSTALL_PATH"
-        echo "Then re-run this installer."
-        exit 1
-    fi
+    echo "ERROR: No write permission to $INSTALL_PATH"
+    echo "Fix with: sudo chown -R $(whoami):$(whoami) $INSTALL_PATH"
+    exit 1
 fi
 
 # Clone repo if not running from one
