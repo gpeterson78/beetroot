@@ -19,11 +19,6 @@ def index():
 def health():
     return jsonify({"status": "ok", "service": "beetroot-backend"})
 
-# Redirect /api/version to actual version endpoint
-@app.route('/api/version', methods=['GET'])
-def version_redirect():
-    return redirect(url_for('version.hash_check'))  # Redirects to /api/version/hash
-
 # Example endpoint to request a script run (stub)
 @app.route('/api/run', methods=['POST'])
 def run_script():
