@@ -8,13 +8,27 @@
     <h1>Beetroot Admin Interface</h1>
     <p>Status: <span id="status">Loading...</span></p>
     <p>Version: <span id="version">Loading...</span></p>
+
     <script>
         fetch('/api/health')
             .then(res => res.json())
             .then(data => {
                 document.getElementById('status').textContent = data.status;
+            })
+            .catch(err => {
+                document.getElementById('status').textContent = "Error";
+                console.error(err);
             });
+
         fetch('/api/version')
             .then(res => res.json())
             .then(data => {
                 document.getElementById('version').textContent = data.version;
+            })
+            .catch(err => {
+                document.getElementById('version').textContent = "Error";
+                console.error(err);
+            });
+    </script>
+</body>
+</html>
