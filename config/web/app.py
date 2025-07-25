@@ -2,6 +2,7 @@ import os
 from flask import Flask, send_from_directory, jsonify, request, redirect, url_for
 from blueprints.scripts import scripts_bp
 from blueprints.version import version_bp
+from blueprints.health import health_bp
 from flasgger import Swagger
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
