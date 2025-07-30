@@ -16,12 +16,16 @@ TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
 log() { echo "[beetup] $1"; }
 
-# --- 1. Git Pull ---
-log "Updating local repo at $REPO_DIR"
-if ! git -C "$REPO_DIR" pull origin main; then
-  log "Git pull failed"
-  exit 1
-fi
+log "Resetting local repo to origin/main (discarding local changes)"
+git -C "$REPO_DIR" fetch origin main
+git -C "$REPO_DIR" reset --hard origin/main
+
+# # --- 1. Git Pull ---
+# log "Updating local repo at $REPO_DIR"
+# if ! git -C "$REPO_DIR" pull origin main; then
+#   log "Git pull failed"
+#   exit 1
+# fi
 
 # --- 2. System Update (APT) ---
 log "Updating system packages (apt)"
@@ -53,13 +57,13 @@ deactivate
 
 # --- 4. Make All Scripts Executable ---
 log "Ensuring all scripts in $SCRIPT_DIR are executable"
-find "$SCRIPT_DIR" -type f -exec chmod +x {} \;
+find "$SCRIPT_DIR" -type f -name "*.sh" -exec chmod +x {} \;
 
 # --- 5. Run Optional Update Hooks ---
-if [ -d "$HOOK_DIR" ]; then
-  log "Ensuring all update hooks are executable"
-  find "$HOOK_DIR" -type f -name "*.sh" -exec chmod +x {} \;
+log "Ensuring all update hooks are executable"
+find "$HOOK_DIR" -type f -name "*.sh" -exec chmod +x {} \;
 
+if [ -d "$HOOK_DIR" ]; then
   log "Running update hooks from $HOOK_DIR"
   for hook in "$HOOK_DIR"/*.sh; do
     [ -x "$hook" ] && log "Running hook: $(basename "$hook")" && "$hook"
