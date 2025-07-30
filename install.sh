@@ -1,10 +1,13 @@
 #!/bin/bash
+# install.sh -- Beetroot environment installer (non-interactive)
+
 set -e
 
 INSTALL_PATH="$(pwd)"
 SCRIPTS_PATH="$INSTALL_PATH/config/scripts"
 VENV_PATH="$INSTALL_PATH/config/web/venv"
-BEETUP="$SCRIPTS_PATH/beetup.sh"
+BEETVER="$SCRIPTS_PATH/beetver.sh"
+BEETWEB="$SCRIPTS_PATH/beetweb.sh"
 
 # --- Check if running as root ---
 if [ "$EUID" -eq 0 ]; then
@@ -15,29 +18,37 @@ fi
 
 echo "Beetroot Installer"
 
-# Detect if already installed
+# --- Detect if already installed ---
 if [ -f "$VENV_PATH/bin/activate" ]; then
-  echo "Beetroot is already installed in: $INSTALL_PATH"
-  echo "To update, run: $BEETUP --update"
-  echo "Or add it to your PATH: export PATH=\"\$PATH:$SCRIPTS_PATH\""
-  exit 0
+    echo "Beetroot is already installed in: $INSTALL_PATH"
+    echo "To update, run: $SCRIPTS_PATH/beetup.sh --update"
+    echo "To make Beetroot commands available globally:"
+    echo "  export PATH=\"\$PATH:$SCRIPTS_PATH\""
+    exit 0
 fi
 
-# --- Check write permissions ---
-if [ ! -w "$INSTALL_PATH" ]; then
-    echo "ERROR: No write permission to $INSTALL_PATH"
-    echo "Fix with: sudo chown -R $(whoami):$(whoami) $INSTALL_PATH"
-    exit 1
-fi
+# --- Set up Python virtual environment ---
+echo "Setting up Python environment..."
+python3 -m venv "$VENV_PATH"
+source "$VENV_PATH/bin/activate"
+pip install -r "$INSTALL_PATH/config/web/requirements.txt"
 
-# Clone repo if not running from one
-if [ ! -f "$BEETUP" ]; then
-  echo "Cloning Beetroot repo..."
-  git clone https://github.com/gpeterson78/beetroot.git "$INSTALL_PATH"
-fi
+# --- Completion message ---
+echo ""
+echo "Beetroot environment setup complete."
+echo "Please verify all dependencies are installed:"
+echo ""
 
-# Ensure beetup is executable
-chmod +x "$BEETUP"
+bash "$BEETVER"
 
-# Run the full setup
-exec "$BEETUP"
+# --- Instructions for adding to PATH ---
+echo ""
+echo "To make Beetroot commands available globally, add this to your shell profile:"
+echo "  export PATH=\"\$PATH:$SCRIPTS_PATH\""
+echo ""
+
+# --- Web interface instructions ---
+echo "To start the Beetroot web interface, run:"
+echo "  $BEETWEB start"
+echo ""
+echo "You can now manage Beetroot via the web admin interface."
