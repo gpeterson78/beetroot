@@ -1,10 +1,12 @@
 #!/bin/bash
-# beetver.sh -- Beetroot version and dependency checker
+# beetver.sh -- Beetroot version and dependency checker (non-installing)
 
 set -e
 
 PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$0")")")"
+SCRIPT_DIR="$(dirname "$0")"
 VERSION_FILE="$PROJECT_ROOT/VERSION"
+DEPENDENCIES_FILE="$SCRIPT_DIR/DEPENDENCIES"
 REPO="gpeterson78/beetroot"
 GITHUB_VERSION_URL="https://raw.githubusercontent.com/$REPO/main/VERSION"
 
@@ -31,53 +33,48 @@ if [ "$REMOTE_VERSION" != "unavailable" ] && [ "$REMOTE_VERSION" != "$LOCAL_VERS
 fi
 
 echo ""
+echo -e "${GREEN}Checking environment dependencies...${RESET}"
 
-#--- Dependencies
-REQUIRED_PKGS=(docker docker-compose python3 pip3 python3-venv)
-
-check_installed() {
-    dpkg -s "$1" &>/dev/null
-}
-
+#--- Version helpers
 get_version() {
     case "$1" in
-        docker) docker --version ;;
+        docker) docker --version 2>/dev/null ;;
         docker-compose)
             if command -v docker compose &>/dev/null; then
-                docker compose version
+                docker compose version 2>/dev/null
             elif command -v docker-compose &>/dev/null; then
-                docker-compose version
+                docker-compose version 2>/dev/null
             else
                 echo "not installed"
             fi ;;
-        python3) python3 --version ;;
-        pip3) pip3 --version ;;
-        python3-venv) echo "(module, no version output)" ;;
+        python3) python3 --version 2>/dev/null ;;
+        pip3) pip3 --version 2>/dev/null ;;
+        python3-venv) echo "(Python module; no version output)" ;;
         *) echo "unknown" ;;
     esac
 }
 
-install_package() {
-    sudo apt update
-    sudo apt install -y "$1"
+is_installed() {
+    dpkg -s "$1" &>/dev/null || command -v "$1" &>/dev/null
 }
 
-echo -e "${GREEN}Checking dependencies...${RESET}"
-for pkg in "${REQUIRED_PKGS[@]}"; do
-    echo -n "$pkg: "
-    if check_installed "$pkg"; then
+#--- Process dependency file
+if [ ! -f "$DEPENDENCIES_FILE" ]; then
+    echo -e "${RED}Missing DEPENDENCIES file: $DEPENDENCIES_FILE${RESET}"
+    exit 1
+fi
+
+while IFS= read -r pkg; do
+    [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue  # skip blank lines and comments
+    printf "%-16s" "$pkg"
+
+    if is_installed "$pkg"; then
         echo -e "${GREEN}installed${RESET} ($(get_version "$pkg"))"
     else
         echo -e "${RED}missing${RESET}"
-        read -rp "  Install $pkg? [Y/n] " answer
-        answer=${answer,,}  # lowercase
-        if [[ "$answer" =~ ^(y|yes|)$ ]]; then
-            install_package "$pkg"
-        else
-            echo "  Skipping $pkg"
-        fi
+        echo "    → To install: ${YELLOW}sudo apt install $pkg${RESET}"
     fi
-done
+done < "$DEPENDENCIES_FILE"
 
 echo ""
 echo -e "${GREEN}Done.${RESET}"
