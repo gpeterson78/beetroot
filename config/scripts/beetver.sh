@@ -34,6 +34,9 @@ fi
 
 echo ""
 echo -e "${GREEN}Checking environment dependencies...${RESET}"
+echo ""
+printf "%-16s %-10s %s\n" "Package" "Status" "Version / Install Hint"
+printf "%-16s %-10s %s\n" "----------------" "----------" "----------------------------"
 
 #--- Version helpers
 get_version() {
@@ -66,14 +69,16 @@ fi
 
 while IFS= read -r pkg; do
     [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue  # skip blank lines and comments
-    printf "%-16s" "$pkg"
 
     if is_installed "$pkg"; then
-        echo -e "${GREEN}installed${RESET} ($(get_version "$pkg"))"
+        STATUS="${GREEN}INSTALLED${RESET}"
+        HINT="$(get_version "$pkg")"
     else
-        echo -e "${RED}missing${RESET}"
-        echo "    → To install: ${YELLOW}sudo apt install $pkg${RESET}"
+        STATUS="${RED}MISSING${RESET}"
+        HINT="${YELLOW}sudo apt install $pkg${RESET}"
     fi
+
+    printf "%-16s %-10b %b\n" "$pkg" "$STATUS" "$HINT"
 done < "$DEPENDENCIES_FILE"
 
 echo ""
