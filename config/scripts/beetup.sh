@@ -1,7 +1,6 @@
 #!/bin/bash
 # beetup.sh -- Beetroot Platform Sync & Updater
 # Grady Peterson, MIT License
-# test
 
 set -euo pipefail
 
