@@ -4,7 +4,7 @@ set -e
 INSTALL_PATH="$(pwd)"
 SCRIPTS_PATH="$INSTALL_PATH/config/scripts"
 VENV_PATH="$INSTALL_PATH/config/web/venv"
-BEETSYNC="$SCRIPTS_PATH/beetsync.sh"
+BEETUP="$SCRIPTS_PATH/beetup.sh"
 
 # --- Check if running as root ---
 if [ "$EUID" -eq 0 ]; then
@@ -18,7 +18,7 @@ echo "Beetroot Installer"
 # Detect if already installed
 if [ -f "$VENV_PATH/bin/activate" ]; then
   echo "Beetroot is already installed in: $INSTALL_PATH"
-  echo "To update, run: $BEETSYNC --update"
+  echo "To update, run: $BEETUP --update"
   echo "Or add it to your PATH: export PATH=\"\$PATH:$SCRIPTS_PATH\""
   exit 0
 fi
@@ -31,13 +31,13 @@ if [ ! -w "$INSTALL_PATH" ]; then
 fi
 
 # Clone repo if not running from one
-if [ ! -f "$BEETSYNC" ]; then
+if [ ! -f "$BEETUP" ]; then
   echo "Cloning Beetroot repo..."
   git clone https://github.com/gpeterson78/beetroot.git "$INSTALL_PATH"
 fi
 
-# Ensure beetsync is executable
-chmod +x "$BEETSYNC"
+# Ensure beetup is executable
+chmod +x "$BEETUP"
 
 # Run the full setup
-exec "$BEETSYNC"
+exec "$BEETUP"

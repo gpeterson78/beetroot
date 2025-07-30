@@ -1,5 +1,5 @@
 #!/bin/bash
-# beetsync.sh -- Beetroot Platform Sync & Updater
+# beetup.sh -- Beetroot Platform Sync & Updater
 # Grady Peterson, MIT License
 
 set -euo pipefail
@@ -14,7 +14,7 @@ HOOK_DIR="$SCRIPT_DIR/hooks/update"
 BACKUP_DIR="$REPO_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
-log() { echo "[beetsync] $1"; }
+log() { echo "[beetup] $1"; }
 
 # --- 1. Git Pull ---
 log "Updating local repo at $REPO_DIR"
