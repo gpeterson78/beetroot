@@ -3,15 +3,8 @@ set -e
 
 # -----------------------------------------------------------------------------
 # mose.sh — service orchestration CLI for beetroot
-#
-# Optional: Add this script directory (config/scripts/) to your $PATH:
-#   export PATH="/path/to/beetroot/config/scripts:$PATH"
-# This allows you to run `mose.sh` from anywhere.
-#
-# Logs are written to: shared/logs/mose.log
 # -----------------------------------------------------------------------------
 
-# Path-safe resolution
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DOCKER_DIR="$PROJECT_ROOT/docker"
@@ -20,51 +13,48 @@ LOG_FILE="$LOG_DIR/mose.log"
 
 mkdir -p "$LOG_DIR"
 
-# Logging functions
-log() {
-  echo "$1" | tee -a "$LOG_FILE"
-}
-
-log_raw() {
-  tee -a "$LOG_FILE"
-}
+log() { echo "$1" | tee -a "$LOG_FILE"; }
+log_raw() { tee -a "$LOG_FILE"; }
 
 usage() {
-  echo "Usage:" | tee -a "$LOG_FILE"
-  echo "  mose.sh <project> [--up|--down|--pull|--update]" | tee -a "$LOG_FILE"
-  echo "  mose.sh --all [--up|--down|--pull|--update]" | tee -a "$LOG_FILE"
-  echo "  mose.sh <project>           # Show status" | tee -a "$LOG_FILE"
-  echo "" | tee -a "$LOG_FILE"
-  echo "Examples:" | tee -a "$LOG_FILE"
-  echo "  mose.sh immich              # Show status of Immich" | tee -a "$LOG_FILE"
-  echo "  mose.sh wordpress --up      # Start WordPress" | tee -a "$LOG_FILE"
-  echo "  mose.sh chamboard --update  # Pull and restart Chamboard" | tee -a "$LOG_FILE"
-  echo "  mose.sh --all --down        # Stop all services" | tee -a "$LOG_FILE"
+  cat <<EOF | tee -a "$LOG_FILE"
+Usage:
+  mose.sh <project|all> <action>
+Actions:
+  start        docker compose up -d
+  stop         docker compose down
+  restart      docker compose restart
+  pull         docker compose pull
+  upgrade      docker compose pull && up -d
+  status       docker compose ps
+
+Examples:
+  mose.sh immich status
+  mose.sh wordpress start
+  mose.sh all stop
+  mose.sh all upgrade     # Will show warning prompt
+EOF
   exit 1
 }
 
 # ------------ Parse Args ------------
 PROJECT=""
 ACTION="status"
-ALL=false
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --all) ALL=true ;;
-    --up) ACTION="up" ;;
-    --down) ACTION="down" ;;
-    --pull) ACTION="pull" ;;
-    --update) ACTION="update" ;;
-    -*)
-      echo "Error: Unknown option: $1" | tee -a "$LOG_FILE"
-      usage
-      ;;
-    *)
-      PROJECT="$1"
-      ;;
-  esac
-  shift
-done
+if [[ $# -eq 0 ]]; then
+  usage
+fi
+
+# Normalize args
+if [[ "$1" == "all" ]]; then
+  PROJECT="all"
+else
+  PROJECT="$1"
+fi
+
+if [[ -n "$2" ]]; then
+  ACTION="$2"
+fi
 
 # ------------ Core Function ------------
 run_project() {
@@ -76,7 +66,6 @@ run_project() {
     log "Error: Project directory not found: $dir"
     return 1
   fi
-
   if [ ! -f "$compose" ]; then
     log "Warning: No docker-compose.yaml found in $dir"
     return 1
@@ -86,40 +75,41 @@ run_project() {
   log "Running action '$ACTION' for project: $name"
 
   case "$ACTION" in
-    status)
-      docker compose -f "$compose" ps | log_raw
-      ;;
-    up)
-      docker compose -f "$compose" up -d | log_raw
-      ;;
-    down)
-      docker compose -f "$compose" down | log_raw
-      ;;
-    pull)
-      docker compose -f "$compose" pull | log_raw
-      ;;
-    update)
+    status)  docker compose -f "$compose" ps | log_raw ;;
+    start)   docker compose -f "$compose" up -d | log_raw ;;
+    stop)    docker compose -f "$compose" down | log_raw ;;
+    restart) docker compose -f "$compose" restart | log_raw ;;
+    pull)    docker compose -f "$compose" pull | log_raw ;;
+    upgrade)
       docker compose -f "$compose" pull | log_raw
       docker compose -f "$compose" up -d | log_raw
       ;;
     *)
-      echo "Unknown action: $ACTION" | tee -a "$LOG_FILE"
-      return 1
+      log "Unknown action: $ACTION"
+      usage
       ;;
   esac
 }
 
-# ------------ Main Dispatch ------------
-if $ALL; then
+# ------------ Main Dispatcher ------------
+if [[ "$PROJECT" == "all" ]]; then
+  if [[ "$ACTION" == "pull" || "$ACTION" == "upgrade" ]]; then
+    echo
+    echo "WARNING: You're performing '$ACTION' on ALL services."
+    echo "Some services (e.g., Immich) may have breaking changes."
+    read -p "Do you want to continue? (yes/no): " CONFIRM
+    if [[ "$CONFIRM" != "yes" ]]; then
+      echo "Aborted."
+      exit 1
+    fi
+  fi
   for dir in "$DOCKER_DIR"/*; do
     [ -d "$dir" ] || continue
     name=$(basename "$dir")
     run_project "$name"
   done
-elif [ -n "$PROJECT" ]; then
-  run_project "$PROJECT"
 else
-  usage
+  run_project "$PROJECT"
 fi
 
 log "Operation completed."
