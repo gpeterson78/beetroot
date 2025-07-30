@@ -10,7 +10,7 @@ SCRIPT_DIR="$REPO_DIR/config/scripts"
 WEB_DIR="$REPO_DIR/config/web"
 VENV_DIR="$WEB_DIR/venv"
 REQUIREMENTS_FILE="$WEB_DIR/requirements.txt"
-HOOK_DIR="$SCRIPT_DIR/hooks/update"
+HOOK_DIR="$SCRIPT_DIR/hooks/beetup"
 BACKUP_DIR="$REPO_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
