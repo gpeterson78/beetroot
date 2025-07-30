@@ -3,8 +3,8 @@
 
 set -e
 
-PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$0")")")"
-SCRIPT_DIR="$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VERSION_FILE="$PROJECT_ROOT/VERSION"
 DEPENDENCIES_FILE="$SCRIPT_DIR/DEPENDENCIES"
 REPO="gpeterson78/beetroot"
