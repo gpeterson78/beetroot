@@ -11,7 +11,7 @@ NC="\\033[0m" # No Color
 # Path to VERSION and DEPENDENCIES files
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/../../VERSION"
-DEPENDENCIES_FILE="$SCRIPT_DIR/../../DEPENDENCIES"
+DEPENDENCIES_FILE="$SCRIPT_DIR/DEPENDENCIES"
 
 # Output flags
 json=false
