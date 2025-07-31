@@ -66,27 +66,30 @@ PRETTY=false
 PROJECT_FILTER=""
 POSITIONAL=()
 
-i=0
-while [[ $i -lt $# ]]; do
-  arg="${!i}"
-  case "$arg" in
-    --json) JSON_OUTPUT=true ;;
-    --pretty) PRETTY=true ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --json) JSON_OUTPUT=true; shift ;;
+    --pretty) PRETTY=true; shift ;;
     --help) usage ;;
     --project)
-      i=$((i + 1))
-      PROJECT_FILTER="${!i}"
+      shift
+      PROJECT_FILTER="$1"
+      shift
       ;;
-    *) POSITIONAL+=("$arg") ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
   esac
-  i=$((i + 1))
 done
 
-ACTION="${POSITIONAL[0]:-}"
+ACTION=""
+[[ ${#POSITIONAL[@]} -gt 0 ]] && ACTION="${POSITIONAL[0]}"
+
 SAFE_ACTIONS=("ps" "status")
 
 # ------------ No-arg or --json-only mode ------------
-if [[ $# -eq 0 || ( "$JSON_OUTPUT" == true && -z "${ACTION:-}" ) ]]; then
+if [[ -z "$ACTION" && -z "$PROJECT_FILTER" ]]; then
   mapfile -t projects < <(find "$DOCKER_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
   if $JSON_OUTPUT; then
     printf '%s\n' "${projects[@]}" | jq -R . | jq -s .
@@ -142,10 +145,10 @@ run_project() {
   else
     echo
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}✅ $name [$ACTION]${NC}"
+      log "${GREEN}$name [$ACTION]${NC}"
       echo "$output" | log_raw
     else
-      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
+      log "${RED}$name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
