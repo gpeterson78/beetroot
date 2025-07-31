@@ -1,0 +1,96 @@
+# Beetroot Platform: Script & API Integration Design Document
+
+## Overview
+
+Beetroot is a modular, self-hosted infrastructure management platform designed to help families and small businesses deploy and manage Docker Compose services with minimal effort. Its architecture prioritizes simplicity, modularity, and local control, exposing all management functionality through CLI scripts and an API-driven web interface.
+
+This document defines the design principles, implementation standards, and testing requirements for CLI scripts and their corresponding API endpoints.
+
+---
+
+## Design Goals
+
+* **Simplicity**: Scripts and APIs should be easy to read, run, and extend.
+* **Modularity**: Features should be self-contained and replaceable.
+* **Single Source of Truth**: Business logic lives in CLI scripts; APIs wrap them.
+* **API-first Integration**: The web interface only uses documented API calls.
+* **Machine-Readable Output**: All scripts must support structured JSON output.
+* **Consistency**: CLI and API outputs follow shared structure and key naming.
+* **Debian-first, portable-to-Ubuntu/Arch**: OS detection logic included.
+
+---
+
+## Script Format Requirements
+
+Each Beetroot CLI script (e.g., `beetver.sh`) must:
+
+* Be POSIX-compatible Bash
+* Live in `config/scripts/`
+* Include usage/help text via `--help`
+* Support the following flags:
+
+  * `--version`, `--hash`, `--os`, `--dependencies`, `--all` (as applicable)
+  * `--json`: return structured JSON output
+  * `--pretty`: optional, prettifies JSON (used only with `--json`)
+* Print colorized terminal output for human use
+* Support fallback behavior when no flags are passed
+* Read configuration from standard files (`VERSION`, `DEPENDENCIES`)
+
+---
+
+## API Integration Rules
+
+Each script should have a corresponding Flask blueprint under `config/web/blueprints/`:
+
+* Use `subprocess.run()` to call the underlying script with `--json --pretty`
+* Parse the output using `json.loads()`
+* Return a `200 OK` with JSON if successful
+* Return a `500` with `{ "success": false, "error": "..." }` if failure
+* Rename or normalize keys as needed (e.g., `commit` → `hash`)
+* Include Swagger documentation via Flasgger (inline docstring or YAML later)
+
+---
+
+## Frontend Integration Standards
+
+The web UI (HTML+JS) will:
+
+* Use `fetch('/api/...')` to call endpoints
+* Expect JSON output and parse `data.key` fields
+* Use modular `<div class="status-box">` blocks for each data set
+* Update DOM using `textContent` in response to API success
+* Refresh key stats every 30 seconds via `setInterval()`
+* Gracefully show "Error" or fallback values when endpoints fail
+
+---
+
+## Implementation Checklist (per script/API pair)
+
+* [x] Script supports all required CLI flags
+* [x] Script supports valid `--json` and `--json --pretty` output
+* [x] JSON keys are stable and machine-readable (e.g., `version`, `hash`)
+* [x] Script tested with no args (default = version + help)
+* [x] Flask blueprint created with matching API route(s)
+* [x] Flask blueprint parses script output and returns JSON
+* [x] Swagger docstring included for each route
+* [x] Frontend fetches and displays data from API
+* [x] Auto-refresh behavior implemented
+* [x] Output shown on frontend matches JSON structure
+
+---
+
+## Future Considerations
+
+* Move config files (e.g., `DEPENDENCIES`) to YAML
+* Add `status`, `backup`, and `compose` APIs next
+* Integrate authentication/authorization middleware
+* Abstract shared script logic into a reusable Python module
+* Consider transitioning some scripts to native Python (as needed)
+
+---
+
+## Conclusion
+
+This document defines the working contract for how Beetroot CLI scripts, APIs, and frontend should be built and integrated. By adhering to these standards, we ensure that every piece of the system can be extended and improved without breaking the whole.
+
+Let this be the pattern moving forward.
