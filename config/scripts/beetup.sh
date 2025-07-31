@@ -28,9 +28,9 @@ git -C "$REPO_DIR" reset --hard origin/main
 # fi
 
 # --- 2. System Update (APT) ---
-log "Updating system packages (apt)"
-sudo apt-get update -y
-sudo apt-get upgrade -y
+# log "Updating system packages (apt)"
+# sudo apt-get update -y
+# sudo apt-get upgrade -y
 
 # --- Check for python3-venv availability ---
 if ! python3 -m venv --help >/dev/null 2>&1; then
