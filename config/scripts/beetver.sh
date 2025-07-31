@@ -10,7 +10,7 @@ NC="\033[0m"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/../../VERSION"
-DEPENDENCIES_FILE="$SCRIPT_DIR/../../DEPENDENCIES"
+DEPENDENCIES_FILE="$SCRIPT_DIR/DEPENDENCIES"
 
 VERSION="$(cat "$VERSION_FILE" 2>/dev/null || echo 'unknown')"
 COMMIT_HASH="$(git -C "$SCRIPT_DIR/../.." rev-parse HEAD 2>/dev/null || echo 'unknown')"
