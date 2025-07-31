@@ -67,8 +67,11 @@ print_usage() {
 generate_json() {
   local deps_json=""
   for dep in "${DEPENDENCIES[@]}"; do
-    ...
+    [[ -z "$dep" ]] && continue
+    status="$(check_dep_status "$dep")"
+    deps_json+="\"$dep\": \"$status\","
   done
+  deps_json="${deps_json%,}"  # Remove trailing comma
 
   cat <<EOF
 {
