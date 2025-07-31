@@ -1,5 +1,5 @@
 #!/bin/bash
-# apitest.sh — quick local API tester for beetroot backend
+# apitest.sh — quick local API tester for beetroot backend - currently broken
 
 BASE_URL="http://localhost:4200/api"
 

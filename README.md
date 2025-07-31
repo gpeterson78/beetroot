@@ -20,7 +20,7 @@ wget -qO- https://raw.githubusercontent.com/gpeterson78/beetroot/main/install.sh
 
 Beets taste like sugary dirt but I love them.  
 
-Like its namesake, **Beetroot** is unpolished, functional, healthy (educational), and grows from the fertile ground sown by all the amazing projects it’s built upon.  It’s for people who like knowing where their data lives.  Who prefer dirt under their nails to scripts they don’t understand.  Who’d rather run one command than push five buttons.
+Like its namesake, **Beetroot** is unpolished, functional, healthy (educational), and grows from the fertile ground sown by all the amazing projects it’s built upon.  It’s for people who like knowing where their data lives.  Who prefer dirt under their nails to binaries and hidden logs they don’t understand.  Those who’d rather run one command than push five buttons but still know what's happening.
 
 Beetroot tastes like control. I love that too.
 
@@ -42,7 +42,7 @@ This project isn’t a reaction to any specific tool — it’s the result of *u
 
 - Many tools abstract away standard practices behind custom UIs.
 - Containerization is simple, why make it more opaque rather that expose it all to debug and learn.
-- I like Web UI's, but sometimes I'd just rather a cli.
+- I like Web UI's, but sometimes I'd just rather spend my time in a greenscreen.
 
 **beetroot embraces** standard formats like `docker-compose`, `.env` files, and basic scripting. The goal is to work *with* existing tools — not replace them.
 
@@ -85,7 +85,7 @@ The system should show you *how* something is done, not just *that* it was done.
 
 beetroot is under active development. The initial goal is to make onboarding and service deployment easy and transparent using:
 
-- A modular CLI toolset (`beetenv`, `beetsync`, `mose`, etc.)
+- A modular CLI toolset (`beetenv.sh`, `beetup.sh`, `mose.sh`, etc.)
 - Docker Compose-based service structure
 - A local admin interface running on port **4200**
 - An API layer integrated into the web admin, decoupled from Traefik and public access
