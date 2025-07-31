@@ -42,18 +42,21 @@ Actions:
   pull       Pull updated Docker images
   upgrade    Pull and restart services (pull + up -d)
   ps         Show status of containers (docker compose ps)
+  list       List available project directories
 
 Flags:
   --project  Run action only on the specified project
+  --list     Same as 'list' action (also accepts: mose.sh list)
   --json     Output result in machine-readable JSON
   --pretty   Pretty-print JSON (used with --json)
   --help     Show this help message
 
 Examples:
-  mose.sh ps                      # Show ps for all services
-  mose.sh pull                    # Pull all services
+  mose.sh ps
+  mose.sh pull
   mose.sh upgrade --project immich
   mose.sh restart --project wordpress
+  mose.sh --list --json
 
 EOF
   exit 0
@@ -63,32 +66,53 @@ EOF
 JSON_OUTPUT=false
 PRETTY=false
 PROJECT_FILTER=""
+LIST_MODE=false
 POSITIONAL=()
 
-for arg in "$@"; do
+i=0
+while [[ $i -lt $# ]]; do
+  arg="${!i}"
   case "$arg" in
     --json) JSON_OUTPUT=true ;;
     --pretty) PRETTY=true ;;
     --help) usage ;;
+    --list|list) LIST_MODE=true ;;
     --project)
-      shift
-      PROJECT_FILTER="$1"
+      i=$((i + 1))
+      PROJECT_FILTER="${!i}"
+      ;;
+    --projects)
+      i=$((i + 1))
+      next_arg="${!i:-}"
+      if [[ "$next_arg" == "list" ]]; then LIST_MODE=true; fi
       ;;
     *) POSITIONAL+=("$arg") ;;
   esac
+  i=$((i + 1))
 done
 
 ACTION="${POSITIONAL[0]:-}"
+SAFE_ACTIONS=("ps" "status")
 
 # ------------ Schrute Mode ------------
-if [[ -z "$ACTION" ]]; then
+if [[ -z "$ACTION" && "$LIST_MODE" == false ]]; then
   echo -e "${YELLOW}We are completely wireless at Schrute Farms! As soon as I find out where Mose hid the wires, we can get the power back on!${NC}"
   echo
   echo "Run with --help for usage."
   exit 0
 fi
 
-SAFE_ACTIONS=("ps" "status")
+# ------------ Project Listing Mode ------------
+if $LIST_MODE; then
+  mapfile -t projects < <(find "$DOCKER_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+  if $JSON_OUTPUT; then
+    printf '%s\n' "${projects[@]}" | jq -R . | jq -s .
+  else
+    echo -e "${YELLOW}Available Beetroot Projects:${NC}"
+    for p in "${projects[@]}"; do echo " - $p"; done
+  fi
+  exit 0
+fi
 
 # ------------ Core Executor ------------
 run_project() {
@@ -130,10 +154,10 @@ run_project() {
   else
     echo
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}✅ $name [$ACTION]${NC}"
+      log "${GREEN}$name [$ACTION]${NC}"
       echo "$output" | log_raw
     else
-      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
+      log "${RED}$name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
@@ -176,7 +200,6 @@ if [[ -n "$PROJECT_FILTER" ]]; then
   fi
   run_project "$PROJECT_FILTER"
 else
-  # Prompt if not a safe action
   if ! $JSON_OUTPUT && ! is_safe_action; then
     echo
     if [[ "$ACTION" == "upgrade" ]]; then
