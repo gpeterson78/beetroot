@@ -148,8 +148,8 @@ run_project() {
   local name="$1"
   local dir="$DOCKER_DIR/$name"
   local compose="$dir/docker-compose.yaml"
-  local output=""
   local status=0
+  local output=""
 
   echo -e "${YELLOW}→ Executing '$ACTION' in project: $name${NC}"
 
@@ -160,22 +160,39 @@ run_project() {
     output="No docker-compose.yaml in $dir"
     status=1
   else
-    case "$ACTION" in
-      up)       output=$(docker compose -f "$compose" up -d 2>&1) ;;
-      down)     output=$(docker compose -f "$compose" down 2>&1) ;;
-      restart)  output=$(docker compose -f "$compose" restart 2>&1) ;;
-      pull)     output=$(docker compose -f "$compose" pull 2>&1) ;;
-      upgrade)
-        output=$(docker compose -f "$compose" pull 2>&1)
-        output+="\n"
-        output+=$(docker compose -f "$compose" up -d 2>&1)
-        ;;
-      ps|status) output=$(docker compose -f "$compose" ps 2>&1) ;;
-      *)
-        output="Unknown action: $ACTION"
-        status=1
-        ;;
-    esac
+    if $JSON_OUTPUT; then
+      # Capture full output for JSON mode
+      case "$ACTION" in
+        up)       output=$(docker compose -f "$compose" up -d 2>&1) ;;
+        down)     output=$(docker compose -f "$compose" down 2>&1) ;;
+        restart)  output=$(docker compose -f "$compose" restart 2>&1) ;;
+        pull)     output=$(docker compose -f "$compose" pull 2>&1) ;;
+        upgrade)
+          output=$(docker compose -f "$compose" pull 2>&1)
+          output+="\n"
+          output+=$(docker compose -f "$compose" up -d 2>&1)
+          ;;
+        ps|status) output=$(docker compose -f "$compose" ps 2>&1) ;;
+        *) output="Unknown action: $ACTION"; status=1 ;;
+      esac
+    else
+      # Stream output directly to log and console
+      case "$ACTION" in
+        up)       docker compose -f "$compose" up -d | tee -a "$LOG_FILE" ;;
+        down)     docker compose -f "$compose" down | tee -a "$LOG_FILE" ;;
+        restart)  docker compose -f "$compose" restart | tee -a "$LOG_FILE" ;;
+        pull)     docker compose -f "$compose" pull | tee -a "$LOG_FILE" ;;
+        upgrade)
+          docker compose -f "$compose" pull | tee -a "$LOG_FILE"
+          docker compose -f "$compose" up -d | tee -a "$LOG_FILE"
+          ;;
+        ps|status) docker compose -f "$compose" ps | tee -a "$LOG_FILE" ;;
+        *)
+          echo -e "${RED}Unknown action: $ACTION${NC}"
+          return 1
+          ;;
+      esac
+    fi
   fi
 
   if $JSON_OUTPUT; then
@@ -183,10 +200,8 @@ run_project() {
       "$name" "$( [[ $status -eq 0 ]] && echo true || echo false )" \
       "$ACTION" "$(jq -Rs <<< "$output")"
   else
-    echo
     if [[ $status -eq 0 ]]; then
       log "${GREEN}✅ $name [$ACTION] succeeded${NC}"
-      echo "$output" | log_raw
     else
       log "${RED}❌ $name [$ACTION] failed: $output${NC}"
     fi
