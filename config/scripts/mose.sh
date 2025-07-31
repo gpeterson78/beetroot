@@ -19,6 +19,31 @@ LOG_FILE="$LOG_DIR/mose.log"
 
 mkdir -p "$LOG_DIR"
 
+# ------------ Docker Permission Check ------------
+if ! command -v docker >/dev/null 2>&1; then
+  echo -e "${RED}Error: Docker is not installed or not in PATH.${NC}"
+  echo "Please install Docker and try again."
+  exit 1
+fi
+
+if ! docker ps >/dev/null 2>&1; then
+  echo -e "${RED}Error: Current user does not have permission to run Docker.${NC}"
+  echo
+  echo -e "${YELLOW}Your user ('$USER') does not have permission to access the Docker daemon.${NC}"
+  echo
+  echo "This is usually because your user is not in the 'docker' group."
+  echo "To fix this, run the following command:"
+  echo
+  echo "  sudo usermod -aG docker \$USER"
+  echo
+  echo "After running that, either log out and log back in, or run:"
+  echo
+  echo "  newgrp docker"
+  echo
+  echo "This should grant the necessary permissions to run Docker without sudo."
+  exit 1
+fi
+
 log() { echo -e "$1" | tee -a "$LOG_FILE"; }
 log_raw() { tee -a "$LOG_FILE"; }
 
