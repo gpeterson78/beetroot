@@ -5,6 +5,12 @@ set -euo pipefail
 # mose.sh — Service orchestration for Beetroot (Docker wrapper)
 # -----------------------------------------------------------------------------
 
+# Color constants
+YELLOW="\033[1;33m"
+RED="\033[0;31m"
+GREEN="\033[0;32m"
+NC="\033[0m"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DOCKER_DIR="$PROJECT_ROOT/docker"
@@ -13,37 +19,21 @@ LOG_FILE="$LOG_DIR/mose.log"
 
 mkdir -p "$LOG_DIR"
 
-log() { echo "$1" | tee -a "$LOG_FILE"; }
+log() { echo -e "$1" | tee -a "$LOG_FILE"; }
 log_raw() { tee -a "$LOG_FILE"; }
-
-# ------------ Flags and JSON Support ------------
-JSON_OUTPUT=false
-PRETTY=false
-
-for arg in "$@"; do
-  case "$arg" in
-    --json) JSON_OUTPUT=true ;;
-    --pretty) PRETTY=true ;;
-    --help) usage ;;
-  esac
-done
 
 emit_json() {
   local json="$1"
-  if $PRETTY; then
-    echo "$json" | jq .
-  else
-    echo "$json"
-  fi
+  if $PRETTY; then echo "$json" | jq .; else echo "$json"; fi
 }
 
 usage() {
-  cat <<EOF | tee -a "$LOG_FILE"
+  cat <<EOF
 
 Beetroot Docker Orchestration Utility
 -------------------------------------
 Usage:
-  mose.sh <project|all> <action> [--json] [--pretty]
+  mose.sh <action> [--project NAME] [--json] [--pretty]
 
 Actions:
   up         Start the project containers (detached by default)
@@ -54,43 +44,51 @@ Actions:
   ps         Show status of containers (docker compose ps)
 
 Flags:
+  --project  Run action only on the specified project
   --json     Output result in machine-readable JSON
   --pretty   Pretty-print JSON (used with --json)
   --help     Show this help message
 
 Examples:
-  mose.sh immich ps
-  mose.sh traefik restart
-  mose.sh all upgrade
-  mose.sh all pull --json --pretty
-
-Notes:
-  - When running with 'all', actions are performed across all folders in docker/
-  - 'upgrade' is useful for batch updating all projects
-  - JSON output includes one object per project for bulk ops
+  mose.sh ps                      # Show ps for all services
+  mose.sh pull                    # Pull all services
+  mose.sh upgrade --project immich
+  mose.sh restart --project wordpress
 
 EOF
-  exit 1
+  exit 0
 }
 
-# ------------ Arg Parsing ------------
+# ------------ Flags and JSON Support ------------
+JSON_OUTPUT=false
+PRETTY=false
+PROJECT_FILTER=""
 POSITIONAL=()
+
 for arg in "$@"; do
   case "$arg" in
-    --json|--pretty|--help) ;;  # handled above
+    --json) JSON_OUTPUT=true ;;
+    --pretty) PRETTY=true ;;
+    --help) usage ;;
+    --project)
+      shift
+      PROJECT_FILTER="$1"
+      ;;
     *) POSITIONAL+=("$arg") ;;
   esac
 done
 
-if [[ ${#POSITIONAL[@]} -eq 0 ]]; then
+ACTION="${POSITIONAL[0]:-}"
+
+# ------------ Schrute Mode ------------
+if [[ -z "$ACTION" ]]; then
+  echo -e "${YELLOW}We are completely wireless at Schrute Farms! As soon as I find out where Mose hid the wires, we can get the power back on!${NC}"
   echo
-  echo "We are completely wireless at Schrute Farms! As soon as I find out where Mose hid the sires, we can get the power back on!"
-  echo
-  usage
+  echo "Run with --help for usage."
+  exit 0
 fi
 
-PROJECT="${POSITIONAL[0]}"
-ACTION="${POSITIONAL[1]:-ps}"
+SAFE_ACTIONS=("ps" "status")
 
 # ------------ Core Executor ------------
 run_project() {
@@ -117,7 +115,7 @@ run_project() {
         output+="\n"
         output+=$(docker compose -f "$compose" up -d 2>&1)
         ;;
-      ps)       output=$(docker compose -f "$compose" ps 2>&1) ;;
+      ps|status) output=$(docker compose -f "$compose" ps 2>&1) ;;
       *)
         output="Unknown action: $ACTION"
         status=1
@@ -132,24 +130,17 @@ run_project() {
   else
     echo
     if [[ $status -eq 0 ]]; then
-      log "✅ $name [$ACTION]"
+      log "${GREEN}✅ $name [$ACTION]${NC}"
       echo "$output" | log_raw
     else
-      log "❌ $name [$ACTION] failed: $output"
+      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
 }
 
 # ------------ Dispatcher ------------
-if [[ "$PROJECT" == "all" ]]; then
-  if [[ "$ACTION" == "pull" || "$ACTION" == "upgrade" ]] && ! $JSON_OUTPUT; then
-    echo
-    echo "WARNING: Performing '$ACTION' on ALL services."
-    read -rp "Continue? (yes/no): " CONFIRM
-    [[ "$CONFIRM" == "yes" ]] || { echo "Aborted."; exit 1; }
-  fi
-
+run_all() {
   if $JSON_OUTPUT; then
     echo -n '{"success": true, "action": "'"$ACTION"'", "projects": ['
     first=true
@@ -168,10 +159,41 @@ if [[ "$PROJECT" == "all" ]]; then
       run_project "$name"
     done
   fi
-else
-  if ! run_project "$PROJECT"; then
-    [[ $JSON_OUTPUT ]] && exit 1
+}
+
+is_safe_action() {
+  for safe in "${SAFE_ACTIONS[@]}"; do
+    [[ "$ACTION" == "$safe" ]] && return 0
+  done
+  return 1
+}
+
+# ------------ Execution Path ------------
+if [[ -n "$PROJECT_FILTER" ]]; then
+  if [[ ! -d "$DOCKER_DIR/$PROJECT_FILTER" ]]; then
+    log "${RED}Error: Project '$PROJECT_FILTER' not found in docker/.${NC}"
+    exit 1
   fi
+  run_project "$PROJECT_FILTER"
+else
+  # Prompt if not a safe action
+  if ! $JSON_OUTPUT && ! is_safe_action; then
+    echo
+    if [[ "$ACTION" == "upgrade" ]]; then
+      echo -e "${RED}WARNING: You are upgrading all services."
+      echo "Some services may have breaking changes."
+      echo "Please review each project’s README before proceeding.${NC}"
+    else
+      echo -e "${YELLOW}You are about to run '$ACTION' on ALL services.${NC}"
+    fi
+    echo
+    read -rp "Are you sure? [y/N]: " CONFIRM
+    [[ "$CONFIRM" == "y" || "$CONFIRM" == "Y" ]] || {
+      echo "Aborted."
+      exit 1
+    }
+  fi
+  run_all
 fi
 
 $JSON_OUTPUT && exit 0
