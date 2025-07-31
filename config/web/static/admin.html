@@ -1,82 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Beetroot Admin</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background: #f7f7f7;
-            padding: 2em;
-        }
-        .status-box {
-            background: #fff;
-            border: 1px solid #ddd;
-            padding: 1em;
-            border-radius: 6px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            max-width: 500px;
-        }
-        h1 { margin-bottom: 0.5em; }
-        .label { font-weight: bold; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Beetroot Admin</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      padding: 2em;
+    }
+    .status-box {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 1em;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin-bottom: 2em;
+    }
+    h1 {
+      margin-bottom: 0.5em;
+    }
+    .label {
+      font-weight: bold;
+    }
+    pre {
+      background: #f0f0f0;
+      padding: 0.5em;
+      border-radius: 4px;
+      font-size: 0.9em;
+      overflow-x: auto;
+    }
+  </style>
 </head>
 <body>
-    <div class="status-box">
-        <h1>Beetroot Admin</h1>
-        <p><span class="label">Status:</span> <span id="status">Loading...</span></p>
-        <p><span class="label">Version:</span> <span id="version">Loading...</span></p>
-        <p><span class="label">Commit Hash:</span> <span id="hash">Loading...</span></p>
+
+  <!-- Status Section -->
+  <div class="status-box">
+    <h1>Beetroot Admin</h1>
+    <p><span class="label">Status:</span> <span id="status">Loading...</span></p>
+  </div>
+
+  <!-- Version Info Block (example for duplicating) -->
+  <div class="status-box">
+    <h2>Version Info</h2>
+    <p><span class="label">Version:</span> <span id="version">Loading...</span></p>
+    <p><span class="label">Commit Hash:</span> <span id="hash">Loading...</span></p>
+    <p><span class="label">Operating System:</span> <span id="os">Loading...</span></p>
+    <div>
+      <span class="label">Dependencies:</span>
+      <pre id="dependencies">Loading...</pre>
     </div>
+  </div>
 
-    <script>
-        function fetchStatus() {
-            fetch('/api/health')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('status').textContent = data.status;
-                })
-                .catch(err => {
-                    document.getElementById('status').textContent = "Error";
-                    console.error(err);
-                });
-        }
+  <!-- Script -->
+  <script>
+    // Health check (status only)
+    function fetchStatus() {
+      fetch('/api/health')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('status').textContent = data.status;
+        })
+        .catch(err => {
+          document.getElementById('status').textContent = "Error";
+          console.error(err);
+        });
+    }
 
-        function fetchVersion() {
-            fetch('/api/version')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('version').textContent = data.version;
-                })
-                .catch(err => {
-                    document.getElementById('version').textContent = "Error";
-                    console.error(err);
-                });
-        }
+    // Version info: includes version, hash, os, dependencies
+    function fetchVersionInfo() {
+      fetch('/api/version')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('version').textContent = data.version || 'unknown';
+          document.getElementById('hash').textContent = data.hash || 'unknown';
+          document.getElementById('os').textContent = data.os || 'unknown';
 
-        function fetchHash() {
-            fetch('/api/version')
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('hash').textContent = data.hash;
-                })
-                .catch(err => {
-                    document.getElementById('hash').textContent = "Error";
-                    console.error(err);
-                });
-        }
+          // Format dependencies object
+          const deps = data.dependencies || {};
+          const formatted = Object.keys(deps)
+            .map(k => `${k}: ${deps[k]}`)
+            .join('\n');
+          document.getElementById('dependencies').textContent = formatted || 'none';
+        })
+        .catch(err => {
+          document.getElementById('version').textContent = "Error";
+          document.getElementById('hash').textContent = "Error";
+          document.getElementById('os').textContent = "Error";
+          document.getElementById('dependencies').textContent = "Error loading dependencies";
+          console.error(err);
+        });
+    }
 
-        function refreshAll() {
-            fetchStatus();
-            fetchVersion();
-            fetchHash();
-        }
+    function refreshAll() {
+      fetchStatus();
+      fetchVersionInfo();
+    }
 
-        // Initial load
-        refreshAll();
+    // Initial load
+    refreshAll();
 
-        // Refresh every 30 seconds
-        setInterval(refreshAll, 30000);
-    </script>
+    // Refresh every 30 seconds
+    setInterval(refreshAll, 30000);
+  </script>
 </body>
 </html>
