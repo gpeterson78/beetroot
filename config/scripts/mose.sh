@@ -4,13 +4,19 @@ set -euo pipefail
 # -----------------------------------------------------------------------------
 # mose.sh — Service orchestration for Beetroot (Docker wrapper)
 # -----------------------------------------------------------------------------
+# This script wraps docker-compose commands for all or individual projects
+# found under the docker/ directory. It allows starting, stopping, upgrading,
+# and checking the status of services in a unified way.
 
-# Color constants
+# ---------------------------------------------
+# Color constants for output
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 NC="\033[0m"
 
+# ---------------------------------------------
+# Paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DOCKER_DIR="$PROJECT_ROOT/docker"
@@ -19,10 +25,10 @@ LOG_FILE="$LOG_DIR/mose.log"
 
 mkdir -p "$LOG_DIR"
 
-# ------------ Docker Permission Check ------------
+# ---------------------------------------------
+# Docker install + permission check
 if ! command -v docker >/dev/null 2>&1; then
   echo -e "${RED}Error: Docker is not installed or not in PATH.${NC}"
-  echo "Please install Docker and try again."
   exit 1
 fi
 
@@ -36,22 +42,28 @@ if ! docker ps >/dev/null 2>&1; then
   echo
   echo "  sudo usermod -aG docker \$USER"
   echo
-  echo "After running that, either log out and log back in, or run:"
+  echo "After that, log out and back in, or run:"
   echo
   echo "  newgrp docker"
   echo
-  echo "This should grant the necessary permissions to run Docker without sudo."
+  echo "This should allow Docker commands to run without sudo."
   exit 1
 fi
 
+# ---------------------------------------------
+# Logging helpers
 log() { echo -e "$1" | tee -a "$LOG_FILE"; }
 log_raw() { tee -a "$LOG_FILE"; }
 
+# ---------------------------------------------
+# JSON output helper
 emit_json() {
   local json="$1"
   if $PRETTY; then echo "$json" | jq .; else echo "$json"; fi
 }
 
+# ---------------------------------------------
+# Help message
 usage() {
   cat <<EOF
 
@@ -85,7 +97,8 @@ EOF
   exit 0
 }
 
-# ------------ Flags and JSON Support ------------
+# ---------------------------------------------
+# Argument parsing
 JSON_OUTPUT=false
 PRETTY=false
 PROJECT_FILTER=""
@@ -101,24 +114,23 @@ while [[ $# -gt 0 ]]; do
       PROJECT_FILTER="$1"
       shift
       ;;
-    *)
-      POSITIONAL+=("$1")
-      shift
-      ;;
+    *) POSITIONAL+=("$1"); shift ;;
   esac
 done
 
 ACTION=""
-[[ ${#POSITIONAL[@]} -gt 0 ]] && ACTION="${POSITIONAL[0]}"
+if [[ ${#POSITIONAL[@]} -gt 0 ]]; then
+  ACTION="${POSITIONAL[0]}"
+fi
 
 SAFE_ACTIONS=("ps" "status")
 
-# ------------ No-arg or --json-only mode ------------
+# ---------------------------------------------
+# No arguments? Show quote and project list
 if [[ -z "$ACTION" && -z "$PROJECT_FILTER" ]]; then
   mapfile -t projects < <(find "$DOCKER_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
   if $JSON_OUTPUT; then
     printf '%s\n' "${projects[@]}" | jq -R . | jq -s .
-    exit 0
   else
     echo -e "${YELLOW}We are completely wireless at Schrute Farms! As soon as I find out where Mose hid the wires, we can get the power back on!${NC}"
     echo
@@ -126,11 +138,12 @@ if [[ -z "$ACTION" && -z "$PROJECT_FILTER" ]]; then
     for p in "${projects[@]}"; do echo " - $p"; done
     echo
     echo "Run with --help for usage."
-    exit 0
   fi
+  exit 0
 fi
 
-# ------------ Core Executor ------------
+# ---------------------------------------------
+# Run action for a specific project
 run_project() {
   local name="$1"
   local dir="$DOCKER_DIR/$name"
@@ -138,8 +151,10 @@ run_project() {
   local output=""
   local status=0
 
+  echo -e "${YELLOW}→ Executing '$ACTION' in project: $name${NC}"
+
   if [[ ! -d "$dir" ]]; then
-    output="Project directory not found"
+    output="Project directory not found: $dir"
     status=1
   elif [[ ! -f "$compose" ]]; then
     output="No docker-compose.yaml in $dir"
@@ -170,16 +185,17 @@ run_project() {
   else
     echo
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}$name [$ACTION]${NC}"
+      log "${GREEN}✅ $name [$ACTION] succeeded${NC}"
       echo "$output" | log_raw
     else
-      log "${RED}$name [$ACTION] failed: $output${NC}"
+      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
 }
 
-# ------------ Dispatcher ------------
+# ---------------------------------------------
+# Run across all detected docker project dirs
 run_all() {
   if $JSON_OUTPUT; then
     echo -n '{"success": true, "action": "'"$ACTION"'", "projects": ['
@@ -201,6 +217,8 @@ run_all() {
   fi
 }
 
+# ---------------------------------------------
+# Helper to avoid prompts for safe read-only actions
 is_safe_action() {
   for safe in "${SAFE_ACTIONS[@]}"; do
     [[ "$ACTION" == "$safe" ]] && return 0
@@ -208,7 +226,8 @@ is_safe_action() {
   return 1
 }
 
-# ------------ Execution Path ------------
+# ---------------------------------------------
+# Execution logic
 if [[ -n "$PROJECT_FILTER" ]]; then
   if [[ ! -d "$DOCKER_DIR/$PROJECT_FILTER" ]]; then
     log "${RED}Error: Project '$PROJECT_FILTER' not found in docker/.${NC}"
