@@ -1,17 +1,4 @@
-import os
-import pandas as pd
-
-# Define file paths
-script_dir = "config/scripts"
-doc_dir = "docs"
-os.makedirs(script_dir, exist_ok=True)
-os.makedirs(doc_dir, exist_ok=True)
-
-beetver_path = os.path.join(script_dir, "beetver.sh")
-beetver_doc_path = os.path.join(doc_dir, "beetver.md")
-
-# Script content
-beetver_script = """#!/bin/bash
+#!/bin/bash
 # beetver.sh -- Version and dependency status checker for Beetroot
 set -euo pipefail
 
@@ -71,16 +58,3 @@ else
     echo "  $dep: $(check_dep "$dep")"
   done
 fi
-"""
-
-# Documentation content
-beetver_doc = """# beetver.sh
-
-This script reports the Beetroot platform version, commit hash, OS info, and required dependency status.
-
-## Usage
-
-```bash
-./beetver.sh
-./beetver.sh --json
-./beetver.sh --json --pretty
