@@ -51,6 +51,23 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------
+# Determine which Docker Compose command to use
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD=(docker-compose)
+else
+  echo -e "${RED}Error: Neither 'docker compose' nor 'docker-compose' is available.${NC}"
+  echo
+  echo "Install one of the following to proceed:"
+  echo "  - docker compose (recommended)"
+  echo "  - docker-compose (legacy)"
+  echo
+  echo "See: https://docs.docker.com/compose/install/"
+  exit 1
+fi
+
+# ---------------------------------------------
 # Logging helpers
 log() { echo -e "$1" | tee -a "$LOG_FILE"; }
 log_raw() { tee -a "$LOG_FILE"; }
@@ -161,37 +178,20 @@ run_project() {
     status=1
   else
     if $JSON_OUTPUT; then
-      # Capture full output for JSON mode
-      case "$ACTION" in
-        up)       output=$(docker compose -f "$compose" up -d 2>&1) ;;
-        down)     output=$(docker compose -f "$compose" down 2>&1) ;;
-        restart)  output=$(docker compose -f "$compose" restart 2>&1) ;;
-        pull)     output=$(docker compose -f "$compose" pull 2>&1) ;;
-        upgrade)
-          output=$(docker compose -f "$compose" pull 2>&1)
-          output+="\n"
-          output+=$(docker compose -f "$compose" up -d 2>&1)
-          ;;
-        ps|status) output=$(docker compose -f "$compose" ps 2>&1) ;;
-        *) output="Unknown action: $ACTION"; status=1 ;;
-      esac
+      output=$("${COMPOSE_CMD[@]}" -f "$compose" "$ACTION" 2>&1 || true)
+      [[ "$ACTION" == "upgrade" ]] && {
+        tmp_output=$output
+        pull_output=$("${COMPOSE_CMD[@]}" -f "$compose" pull 2>&1 || true)
+        up_output=$("${COMPOSE_CMD[@]}" -f "$compose" up -d 2>&1 || true)
+        output="$pull_output\n$up_output"
+      }
     else
-      # Stream output directly to log and console
-      case "$ACTION" in
-        up)       docker compose -f "$compose" up -d | tee -a "$LOG_FILE" ;;
-        down)     docker compose -f "$compose" down | tee -a "$LOG_FILE" ;;
-        restart)  docker compose -f "$compose" restart | tee -a "$LOG_FILE" ;;
-        pull)     docker compose -f "$compose" pull | tee -a "$LOG_FILE" ;;
-        upgrade)
-          docker compose -f "$compose" pull | tee -a "$LOG_FILE"
-          docker compose -f "$compose" up -d | tee -a "$LOG_FILE"
-          ;;
-        ps|status) docker compose -f "$compose" ps | tee -a "$LOG_FILE" ;;
-        *)
-          echo -e "${RED}Unknown action: $ACTION${NC}"
-          return 1
-          ;;
-      esac
+      if [[ "$ACTION" == "upgrade" ]]; then
+        "${COMPOSE_CMD[@]}" -f "$compose" pull | tee -a "$LOG_FILE"
+        "${COMPOSE_CMD[@]}" -f "$compose" up -d | tee -a "$LOG_FILE"
+      else
+        "${COMPOSE_CMD[@]}" -f "$compose" "$ACTION" | tee -a "$LOG_FILE"
+      fi
     fi
   fi
 
@@ -201,9 +201,9 @@ run_project() {
       "$ACTION" "$(jq -Rs <<< "$output")"
   else
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}✅ $name [$ACTION] succeeded${NC}"
+      log "${GREEN}$name [$ACTION] succeeded${NC}"
     else
-      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
+      log "${RED}$name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
@@ -213,7 +213,7 @@ run_project() {
 # Run across all detected docker project dirs
 run_all() {
   if $JSON_OUTPUT; then
-    echo -n '{"success": true, "action": "'"$ACTION"'", "projects": ['
+    echo -n '{"success": true, "action": "'$ACTION'", "projects": ['
     first=true
     for dir in "$DOCKER_DIR"/*; do
       [[ -d "$dir" ]] || continue
