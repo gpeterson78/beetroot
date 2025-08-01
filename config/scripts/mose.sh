@@ -50,12 +50,11 @@ if ! docker ps >/dev/null 2>&1; then
   exit 1
 fi
 
-# ---------------------------------------------
 # Determine which Docker Compose command to use
-if docker compose version >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker compose)
+if command -v docker compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD=(docker-compose)
+  COMPOSE_CMD="docker-compose"
 else
   echo -e "${RED}Error: Neither 'docker compose' nor 'docker-compose' is available.${NC}"
   echo
@@ -178,20 +177,37 @@ run_project() {
     status=1
   else
     if $JSON_OUTPUT; then
-      output=$("${COMPOSE_CMD[@]}" -f "$compose" "$ACTION" 2>&1 || true)
-      [[ "$ACTION" == "upgrade" ]] && {
-        tmp_output=$output
-        pull_output=$("${COMPOSE_CMD[@]}" -f "$compose" pull 2>&1 || true)
-        up_output=$("${COMPOSE_CMD[@]}" -f "$compose" up -d 2>&1 || true)
-        output="$pull_output\n$up_output"
-      }
+      # Capture full output for JSON mode
+      case "$ACTION" in
+        up)       output=$($COMPOSE_CMD -f "$compose" up -d 2>&1) ;;
+        down)     output=$($COMPOSE_CMD -f "$compose" down 2>&1) ;;
+        restart)  output=$($COMPOSE_CMD -f "$compose" restart 2>&1) ;;
+        pull)     output=$($COMPOSE_CMD -f "$compose" pull 2>&1) ;;
+        upgrade)
+          output=$($COMPOSE_CMD -f "$compose" pull 2>&1)
+          output+="\n"
+          output+=$($COMPOSE_CMD -f "$compose" up -d 2>&1)
+          ;;
+        ps|status) output=$($COMPOSE_CMD -f "$compose" ps 2>&1) ;;
+        *) output="Unknown action: $ACTION"; status=1 ;;
+      esac
     else
-      if [[ "$ACTION" == "upgrade" ]]; then
-        "${COMPOSE_CMD[@]}" -f "$compose" pull | tee -a "$LOG_FILE"
-        "${COMPOSE_CMD[@]}" -f "$compose" up -d | tee -a "$LOG_FILE"
-      else
-        "${COMPOSE_CMD[@]}" -f "$compose" "$ACTION" | tee -a "$LOG_FILE"
-      fi
+      # Stream output directly to log and console
+      case "$ACTION" in
+        up)       $COMPOSE_CMD -f "$compose" up -d | tee -a "$LOG_FILE" ;;
+        down)     $COMPOSE_CMD -f "$compose" down | tee -a "$LOG_FILE" ;;
+        restart)  $COMPOSE_CMD -f "$compose" restart | tee -a "$LOG_FILE" ;;
+        pull)     $COMPOSE_CMD -f "$compose" pull | tee -a "$LOG_FILE" ;;
+        upgrade)
+          $COMPOSE_CMD -f "$compose" pull | tee -a "$LOG_FILE"
+          $COMPOSE_CMD -f "$compose" up -d | tee -a "$LOG_FILE"
+          ;;
+        ps|status) $COMPOSE_CMD -f "$compose" ps | tee -a "$LOG_FILE" ;;
+        *)
+          echo -e "${RED}Unknown action: $ACTION${NC}"
+          return 1
+          ;;
+      esac
     fi
   fi
 
@@ -201,9 +217,9 @@ run_project() {
       "$ACTION" "$(jq -Rs <<< "$output")"
   else
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}$name [$ACTION] succeeded${NC}"
+      log "${GREEN}✅ $name [$ACTION] succeeded${NC}"
     else
-      log "${RED}$name [$ACTION] failed: $output${NC}"
+      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
