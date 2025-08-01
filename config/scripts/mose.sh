@@ -172,6 +172,10 @@ handle_import() {
     target_dir="$DOCKER_DIR/$name"
 
     if [[ -d "$item" ]]; then
+      if [[ ! -f "$item/docker-compose.yaml" ]]; then
+        echo -e "${RED} - Skipping '$base': no docker-compose.yaml found in folder.${NC}"
+        continue
+      fi
       echo " - Moving project directory: $base → $target_dir"
       mv "$item" "$target_dir"
     elif [[ -f "$item" && "$base" == *.yaml ]]; then
