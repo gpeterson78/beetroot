@@ -14,7 +14,7 @@ services:
 
       # Dashboard
       - "--api.dashboard=true"
-      - "--api.insecure=false"
+      - "--api.insecure=true"  # You can set this to false in production
 
       # Providers
       - "--providers.docker=true"
