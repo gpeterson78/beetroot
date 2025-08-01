@@ -52,7 +52,7 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 # Determine which Docker Compose command to use
-if command -v docker compose >/dev/null 2>&1; then
+if docker compose version >/dev/null 2>&1; then
   COMPOSE_CMD="docker compose"
 elif command -v docker-compose >/dev/null 2>&1; then
   COMPOSE_CMD="docker-compose"
