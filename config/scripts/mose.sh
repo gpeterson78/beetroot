@@ -118,6 +118,7 @@ EOF
 
 # ---------------------------------------------
 # Argument parsing
+DRY_RUN=false
 JSON_OUTPUT=false
 PRETTY=false
 PROJECT_FILTER=""
@@ -127,6 +128,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --json) JSON_OUTPUT=true; shift ;;
     --pretty) PRETTY=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;  # 👈 Add this line
     --help) usage ;;
     --project)
       shift
@@ -168,7 +170,7 @@ handle_import() {
   shopt -s nullglob
   for item in "$IMPORT_DIR"/*; do
     base=$(basename "$item")
-    name="${base%%.*}"  # Strip extension if single YAML file
+    name="${base%%.*}"  # Strip extension for .yaml
     target_dir="$DOCKER_DIR/$name"
 
     if [[ -d "$item" ]]; then
@@ -176,17 +178,30 @@ handle_import() {
         echo -e "${RED} - Skipping '$base': no docker-compose.yaml found in folder.${NC}"
         continue
       fi
-      echo " - Moving project directory: $base → $target_dir"
-      mv "$item" "$target_dir"
+      if $DRY_RUN; then
+        echo " - Would import folder: $base → $target_dir"
+      else
+        echo " - Moving project directory: $base → $target_dir"
+        mv "$item" "$target_dir"
+      fi
     elif [[ -f "$item" && "$base" == *.yaml ]]; then
-      echo " - Moving single file: $base → $target_dir/docker-compose.yaml"
-      mkdir -p "$target_dir"
-      mv "$item" "$target_dir/docker-compose.yaml"
+      if $DRY_RUN; then
+        echo " - Would import file: $base → $target_dir/docker-compose.yaml"
+      else
+        echo " - Moving single file: $base → $target_dir/docker-compose.yaml"
+        mkdir -p "$target_dir"
+        mv "$item" "$target_dir/docker-compose.yaml"
+      fi
     else
-      echo " - Skipping unknown format: $base"
+      echo -e "${RED} - Skipping unknown format: $base${NC}"
     fi
   done
-  echo -e "${GREEN}Import complete.${NC}"
+
+  if $DRY_RUN; then
+    echo -e "${YELLOW}Dry-run complete. No files were moved.${NC}"
+  else
+    echo -e "${GREEN}Import complete.${NC}"
+  fi
   exit 0
 }
 
