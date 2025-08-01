@@ -173,6 +173,9 @@ handle_import() {
     name="${base%%.*}"  # Strip extension for .yaml
     target_dir="$DOCKER_DIR/$name"
 
+    # Ignore known ignorable files
+    [[ "$base" == "README.md" || "$base" == *.md ]] && continue
+
     if [[ -d "$item" ]]; then
       if [[ ! -f "$item/docker-compose.yaml" ]]; then
         echo -e "${RED} - Skipping '$base': no docker-compose.yaml found in folder.${NC}"
