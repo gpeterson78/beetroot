@@ -21,9 +21,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DOCKER_DIR="$PROJECT_ROOT/docker"
 LOG_DIR="$PROJECT_ROOT/shared/logs"
+IMPORT_DIR="$PROJECT_ROOT/shared/import"
 LOG_FILE="$LOG_DIR/mose.log"
 
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "$IMPORT_DIR"
 
 # ---------------------------------------------
 # Docker install + permission check
@@ -51,10 +52,10 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 # Determine which Docker Compose command to use
-if command -v docker-compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker-compose"
-elif docker compose version >/dev/null 2>&1; then
+if command -v docker compose >/dev/null 2>&1; then
   COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker-compose"
 else
   echo -e "${RED}Error: Neither 'docker compose' nor 'docker-compose' is available.${NC}"
   echo
@@ -95,6 +96,7 @@ Actions:
   pull       Pull updated Docker images
   upgrade    Pull and restart services (pull + up -d)
   ps         Show status of containers (docker compose ps)
+  import     Import project folder or YAML from shared/import
 
 Flags:
   --project  Run action only on the specified project
@@ -107,6 +109,7 @@ Examples:
   mose.sh pull
   mose.sh upgrade --project immich
   mose.sh restart --project wordpress
+  mose.sh import
   mose.sh --json
 
 EOF
@@ -156,6 +159,35 @@ if [[ -z "$ACTION" && -z "$PROJECT_FILTER" ]]; then
     echo "Run with --help for usage."
   fi
   exit 0
+fi
+
+# ---------------------------------------------
+# Import handler
+handle_import() {
+  echo -e "${YELLOW}→ Importing projects from: $IMPORT_DIR${NC}"
+  shopt -s nullglob
+  for item in "$IMPORT_DIR"/*; do
+    base=$(basename "$item")
+    name="${base%%.*}"  # Strip extension if single YAML file
+    target_dir="$DOCKER_DIR/$name"
+
+    if [[ -d "$item" ]]; then
+      echo " - Moving project directory: $base → $target_dir"
+      mv "$item" "$target_dir"
+    elif [[ -f "$item" && "$base" == *.yaml ]]; then
+      echo " - Moving single file: $base → $target_dir/docker-compose.yaml"
+      mkdir -p "$target_dir"
+      mv "$item" "$target_dir/docker-compose.yaml"
+    else
+      echo " - Skipping unknown format: $base"
+    fi
+  done
+  echo -e "${GREEN}Import complete.${NC}"
+  exit 0
+}
+
+if [[ "$ACTION" == "import" ]]; then
+  handle_import
 fi
 
 # ---------------------------------------------
@@ -227,7 +259,7 @@ run_project() {
 # Run across all detected docker project dirs
 run_all() {
   if $JSON_OUTPUT; then
-    echo -n '{"success": true, "action": "'"$ACTION"'", "projects": ['
+    echo -n '{"success": true, "action": "'$ACTION'", "projects": ['
     first=true
     for dir in "$DOCKER_DIR"/*; do
       [[ -d "$dir" ]] || continue
