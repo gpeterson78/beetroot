@@ -51,10 +51,10 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 # Determine which Docker Compose command to use
-if command -v docker compose >/dev/null 2>&1; then
-  COMPOSE_CMD="docker compose"
-elif command -v docker-compose >/dev/null 2>&1; then
+if command -v docker-compose >/dev/null 2>&1; then
   COMPOSE_CMD="docker-compose"
+elif docker compose version >/dev/null 2>&1; then
+  COMPOSE_CMD="docker compose"
 else
   echo -e "${RED}Error: Neither 'docker compose' nor 'docker-compose' is available.${NC}"
   echo
@@ -177,7 +177,6 @@ run_project() {
     status=1
   else
     if $JSON_OUTPUT; then
-      # Capture full output for JSON mode
       case "$ACTION" in
         up)       output=$($COMPOSE_CMD -f "$compose" up -d 2>&1) ;;
         down)     output=$($COMPOSE_CMD -f "$compose" down 2>&1) ;;
@@ -192,7 +191,6 @@ run_project() {
         *) output="Unknown action: $ACTION"; status=1 ;;
       esac
     else
-      # Stream output directly to log and console
       case "$ACTION" in
         up)       $COMPOSE_CMD -f "$compose" up -d | tee -a "$LOG_FILE" ;;
         down)     $COMPOSE_CMD -f "$compose" down | tee -a "$LOG_FILE" ;;
@@ -217,9 +215,9 @@ run_project() {
       "$ACTION" "$(jq -Rs <<< "$output")"
   else
     if [[ $status -eq 0 ]]; then
-      log "${GREEN}✅ $name [$ACTION] succeeded${NC}"
+      log "${GREEN}$name [$ACTION] succeeded${NC}"
     else
-      log "${RED}❌ $name [$ACTION] failed: $output${NC}"
+      log "${RED}$name [$ACTION] failed: $output${NC}"
     fi
   fi
   return $status
@@ -229,7 +227,7 @@ run_project() {
 # Run across all detected docker project dirs
 run_all() {
   if $JSON_OUTPUT; then
-    echo -n '{"success": true, "action": "'$ACTION'", "projects": ['
+    echo -n '{"success": true, "action": "'"$ACTION"'", "projects": ['
     first=true
     for dir in "$DOCKER_DIR"/*; do
       [[ -d "$dir" ]] || continue
