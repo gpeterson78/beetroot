@@ -2,15 +2,19 @@ version: "3.8"
 
 services:
   hugo:
-    image: hugomods/hugo
+    image: hugomods/hugo:latest
     container_name: beetroot_hugo_builder
     working_dir: /site
-    entrypoint: [ "sh", "-c" ]
-    command: sh -c "hugo --destination /public && chmod -R a+r /public"
+    command: >
+      hugo
+      --config /site/config.toml
+      --contentDir /shared/content
+      --staticDir /shared/static
+      --destination /public
     volumes:
       - ./site:/site
-      - ../../shared/blog/content:/site/content
-      - ../../shared/blog/static:/site/static
+      - ../../shared/blog/content:/shared/content
+      - ../../shared/blog/static:/shared/static
       - ../../shared/blog/public:/public
     networks:
       - beetroot
