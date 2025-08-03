@@ -1,0 +1,1 @@
+This is the default blog component of Beetroot. Built with Hugo + PaperMod. Fully static, markdown-driven, and can be replaced with your own theme or full CMS (e.g., WordPress). Content is stored in shared/blog/content. To change the theme, drop a new one into site/themes/, edit config.toml, and rebuild.
