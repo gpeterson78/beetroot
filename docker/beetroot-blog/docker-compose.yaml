@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  hugo:
+    image: klakegg/hugo:ext-alpine
+    container_name: beetroot_hugo_builder
+    working_dir: /site
+    command: >
+      sh -c "hugo --destination /public && chmod -R a+r /public"
+    volumes:
+      - ./site:/site
+      - ../../shared/blog/content:/site/content
+      - ../../shared/blog/static:/site/static
+      - ../../shared/blog/public:/public
+    networks:
+      - beetroot
+    restart: "no"
+
+  blog:
+    image: nginx:alpine
+    container_name: beetroot_blog
+    volumes:
+      - ../../shared/blog/public:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "1313:80"  # Traefik will handle routing later
+    networks:
+      - beetroot
+    restart: unless-stopped
+
+networks:
+  beetroot:
+    external: true
