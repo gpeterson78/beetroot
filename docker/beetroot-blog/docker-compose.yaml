@@ -5,8 +5,8 @@ services:
     image: klakegg/hugo:ext-alpine
     container_name: beetroot_hugo_builder
     working_dir: /site
-    command: >
-      sh -c "hugo --destination /public && chmod -R a+r /public"
+    entrypoint: [ "sh", "-c" ]
+    command: "hugo --destination /public && chmod -R a+r /public"
     volumes:
       - ./site:/site
       - ../../shared/blog/content:/site/content

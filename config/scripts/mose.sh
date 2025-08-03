@@ -67,6 +67,20 @@ else
   exit 1
 fi
 
+
+# ---------------------------------------------
+# Ensure 'beetroot' Docker network exists
+if ! docker network inspect beetroot >/dev/null 2>&1; then
+  echo -e "${YELLOW}Docker network 'beetroot' not found.${NC}"
+  echo "This network is required for inter-service communication via Traefik."
+  read -rp "Would you like to create it now? [Y/n]: " net_confirm
+  if [[ "$net_confirm" =~ ^[Nn]$ ]]; then
+    echo -e "${RED}Beetroot network not created. Future service operations may fail.${NC}"
+  else
+    docker network create beetroot
+    echo -e "${GREEN}Network 'beetroot' created.${NC}"
+  fi
+fi
 # ---------------------------------------------
 # Logging helpers
 log() { echo -e "$1" | tee -a "$LOG_FILE"; }
