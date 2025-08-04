@@ -9,12 +9,11 @@ services:
       hugo
       --config /site/config.toml
       --contentDir /shared/content
-      - ../../shared/blog/static:/site/static
       --destination /public
     volumes:
       - ./site:/site
       - ../../shared/blog/content:/shared/content
-      - ../../shared/blog/static:/shared/static
+      - ../../shared/blog/static:/site/static
       - ./site/public:/public
     networks:
       - beetroot
