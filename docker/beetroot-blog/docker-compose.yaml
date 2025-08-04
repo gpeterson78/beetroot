@@ -15,7 +15,7 @@ services:
       - ./site:/site
       - ../../shared/blog/content:/shared/content
       - ../../shared/blog/static:/shared/static
-      - ../../shared/blog/public:/public
+      - ./site/public:/public
     networks:
       - beetroot
     restart: "no"
@@ -24,10 +24,10 @@ services:
     image: nginx:alpine
     container_name: beetroot_blog
     volumes:
-      - ../../shared/blog/public:/usr/share/nginx/html:ro
+      - ./site/public:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - "1313:80"  # Traefik will handle routing later
+      - "1313:80"
     networks:
       - beetroot
     restart: unless-stopped
