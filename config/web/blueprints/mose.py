@@ -26,7 +26,7 @@ def run_mose(action, project=None, pretty=False):
         return jsonify(success=False, error=e.stderr.strip(), output=e.stdout.strip()), 500
 
 
-@mose_bp.route("/mose", methods=["GET"])
+@mose_bp.route("/", methods=["GET"])
 @swag_from({
     "tags": ["mose"],
     "parameters": [
