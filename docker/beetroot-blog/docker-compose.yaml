@@ -9,7 +9,7 @@ services:
       hugo
       --config /site/config.toml
       --contentDir /shared/content
-      --staticDir /shared/static
+      - ../../shared/blog/static:/site/static
       --destination /public
     volumes:
       - ./site:/site
