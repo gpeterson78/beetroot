@@ -3,7 +3,8 @@ from flask import Flask, send_from_directory, jsonify, request, redirect, url_fo
 from blueprints.scripts import scripts_bp
 from blueprints.version import version_bp
 from blueprints.health import health_bp
-from blueprints.mose import mose_bp
+from blueprints.info.mose_i import mose_info_bp
+from blueprints.action.mose_a import mose_action_bp
 from flasgger import Swagger
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +32,8 @@ def run_script():
 app.register_blueprint(scripts_bp, url_prefix='/api/scripts')
 app.register_blueprint(version_bp, url_prefix='/api/version')
 app.register_blueprint(health_bp, url_prefix='/api/health')
-app.register_blueprint(mose_bp, url_prefix='/api/mose')
+app.register_blueprint(mose_info_bp, url_prefix='/api/info/mose')
+app.register_blueprint(mose_action_bp, url_prefix='/api/action/mose')
 
 # Launch the app
 if __name__ == "__main__":

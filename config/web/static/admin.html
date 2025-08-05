@@ -79,6 +79,88 @@
     </div>
   </div>
 
+<div class="status-box">
+  <h2>Mose Control</h2>
+
+  <form id="mose-form">
+    <label for="mose-action" class="label">Action:</label>
+    <select id="mose-action">
+      <option value="ps">ps</option>
+      <option value="up">up</option>
+      <option value="down">down</option>
+      <option value="restart">restart</option>
+      <option value="pull">pull</option>
+      <option value="upgrade">upgrade</option>
+      <option value="import">import</option>
+    </select>
+    &nbsp;
+    <label for="mose-project" class="label">Project (optional):</label>
+    <input type="text" id="mose-project" placeholder="e.g. traefik" />
+    &nbsp;
+    <label>
+      <input type="checkbox" id="mose-pretty" checked />
+      Pretty output
+    </label>
+    <br><br>
+    <button type="submit">Run</button>
+  </form>
+
+  <div>
+    <span class="label">Output:</span>
+    <pre id="mose-output">No command run yet</pre>
+  </div>
+</div>
+
+<script>
+  document.getElementById('mose-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const action = document.getElementById('mose-action').value;
+    const project = document.getElementById('mose-project').value;
+    const pretty = document.getElementById('mose-pretty').checked;
+
+    if (action === 'ps') {
+      // GET to info endpoint
+      let url = `/api/info/mose/ps`;
+      if (project) url += `?project=${encodeURIComponent(project)}`;
+      if (pretty && project) url += `&pretty=true`;
+      else if (pretty) url += `?pretty=true`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('mose-output').textContent = data.output;
+          } else {
+            document.getElementById('mose-output').textContent = "Error: " + data.error + "\n" + (data.output || "");
+          }
+        })
+        .catch(err => {
+          document.getElementById('mose-output').textContent = "Fetch error: " + err;
+        });
+
+    } else {
+      // POST to action endpoint
+      fetch(`/api/action/mose/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project, pretty })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('mose-output').textContent = data.output;
+          } else {
+            document.getElementById('mose-output').textContent = "Error: " + data.error + "\n" + (data.output || "");
+          }
+        })
+        .catch(err => {
+          document.getElementById('mose-output').textContent = "Fetch error: " + err;
+        });
+    }
+  });
+</script>
+
   <div id="footer">Beetroot Admin UI &mdash; updated <script>document.write(new Date().toLocaleString())</script></div>
 
   <script>
