@@ -6,7 +6,7 @@ from flask import Blueprint, request, jsonify
 from flasgger import swag_from
 
 mose_action_bp = Blueprint("mose_action", __name__)
-SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../scripts/mose.sh"))
+SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../config/scripts/mose.sh"))
 
 def run_mose_action(action, project=None, pretty=False):
     cmd = [SCRIPT_PATH, action, "--json"]
