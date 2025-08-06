@@ -21,7 +21,7 @@ logging.basicConfig(
 mose_info_bp = Blueprint("mose_info", __name__)
 
 # Absolute path to the CLI script
-SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../config/scripts/mose.sh"))
+SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../config/scripts/mose.sh"))
 
 def run_mose(action, project=None, pretty=False):
     """
