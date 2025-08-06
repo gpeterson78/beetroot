@@ -6,6 +6,16 @@ from blueprints.health import health_bp
 from blueprints.info.mose_i import mose_info_bp
 from blueprints.action.mose_a import mose_action_bp
 from flasgger import Swagger
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("../../shares/logs/flask.log"),
+        logging.StreamHandler()  # Optional: also print to console
+    ]
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
