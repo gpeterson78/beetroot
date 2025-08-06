@@ -8,12 +8,33 @@ from flasgger import swag_from
 mose_info_bp = Blueprint("mose_info", __name__)
 SCRIPT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../config/scripts/mose.sh"))
 
-def run_mose_info(action="ps", project=None, pretty=False):
+# def run_mose_info(action="ps", project=None, pretty=False):
+#     cmd = [SCRIPT_PATH, action, "--json"]
+#     if pretty:
+#         cmd.append("--pretty")
+#     if project:
+#         cmd.extend(["--project", project])
+
+#     try:
+#         result = subprocess.run(
+#             cmd,
+#             stdout=subprocess.PIPE,
+#             stderr=subprocess.PIPE,
+#             text=True,
+#             check=True
+#         )
+#         return jsonify(success=True, output=result.stdout.strip())
+#     except subprocess.CalledProcessError as e:
+#         return jsonify(success=False, error=e.stderr.strip(), output=e.stdout.strip()), 500
+
+def run_mose(action, project=None, pretty=False):
     cmd = [SCRIPT_PATH, action, "--json"]
     if pretty:
         cmd.append("--pretty")
     if project:
         cmd.extend(["--project", project])
+
+    print(f"[mose API] Running: {' '.join(cmd)}")  # 🔍 Log command
 
     try:
         result = subprocess.run(
@@ -23,10 +44,14 @@ def run_mose_info(action="ps", project=None, pretty=False):
             text=True,
             check=True
         )
+        print(f"[mose API] Output: {result.stdout.strip()}")  # 🔍 Log stdout
         return jsonify(success=True, output=result.stdout.strip())
     except subprocess.CalledProcessError as e:
+        print(f"[mose API] Error: {e.stderr.strip()}")  # 🔍 Log stderr
         return jsonify(success=False, error=e.stderr.strip(), output=e.stdout.strip()), 500
-
+    except Exception as e:
+        print(f"[mose API] Unexpected error: {e}")
+        return jsonify(success=False, error=str(e)), 500
 
 @mose_info_bp.route("/ps", methods=["GET"])
 @swag_from({
